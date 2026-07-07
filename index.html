@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Re:Base — Re:Poker Internal Portal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ========== RESET & BASE ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0A0908;
+  --bg2: #111009;
+  --bg3: #181510;
+  --bg4: #1E1A14;
+  --text: #F0EDE6;
+  --muted: #8A857C;
+  --muted2: #B8B3A8;
+  --gold: #E8C547;
+  --green: #47E8A0;
+  --blue: #47A0E8;
+  --orange: #E87047;
+  --purple: #A047E8;
+  --red: #E84747;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.10);
+  --sidebar-w: 220px;
+  --radius: 10px;
+  --transition: 0.18s ease;
+}
+html { font-size: 15px; }
+body {
+  font-family: 'Hiragino Kaku Gothic Pro','Yu Gothic','Helvetica Neue',sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+/* scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ========== TYPOGRAPHY ========== */
+h1,h2,h3,h4 { font-weight: 700; letter-spacing: -0.02em; }
+a { color: inherit; text-decoration: none; }
+
+/* ========== LAYOUT ========== */
+#app { display: flex; min-height: 100vh; }
+
+/* ========== SIDEBAR ========== */
+#sidebar {
+  width: var(--sidebar-w);
+  min-height: 100vh;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  z-index: 100;
+  transition: transform var(--transition);
+}
+.sidebar-logo {
+  padding: 24px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-logo .logo-name {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, var(--gold), var(--orange));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.sidebar-logo .logo-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sidebar-nav { flex: 1; padding: 12px 8px; overflow-y: auto; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted2);
+  cursor: pointer;
+  transition: all var(--transition);
+  user-select: none;
+  margin-bottom: 2px;
+}
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: var(--bg4); color: var(--text); }
+.nav-item .nav-icon { font-size: 16px; width: 22px; text-align: center; }
+.nav-item .nav-label { flex: 1; }
+.sidebar-user {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { font-size: 11px; color: var(--muted); }
+.logout-btn {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; font-size: 14px; padding: 4px;
+  transition: color var(--transition);
+}
+.logout-btn:hover { color: var(--red); }
+
+/* ========== TOPBAR (PC) ========== */
+#topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: 52px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+#topbar-back-btn {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--muted2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: all var(--transition);
+}
+#topbar-back-btn:hover { background: var(--bg3); color: var(--text); }
+#topbar-back-btn.visible { display: flex; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+/* ========== ONLINE BADGE ========== */
+.online-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 2px; right: 2px;
+  border: 2px solid var(--bg3);
+}
+.online-dot.online { background: var(--green); box-shadow: 0 0 6px rgba(71,232,160,0.6); }
+.online-dot.offline { background: var(--muted); }
+.staff-card-avatar-wrap { position: relative; display: inline-block; }
+
+/* ========== MOBILE HEADER ========== */
+#mobile-header {
+  display: none;
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 54px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 200;
+}
+.mobile-logo { font-size: 18px; font-weight: 900; background: linear-gradient(135deg, var(--gold), var(--orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hamburger-btn { background: none; border: none; color: var(--text); cursor: pointer; font-size: 22px; padding: 4px; }
+
+/* Overlay */
+#sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  z-index: 99;
+  backdrop-filter: blur(2px);
+}
+
+/* ========== MAIN CONTENT ========== */
+#main {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.page { display: none; flex: 1; padding: 32px; }
+.page.active { display: block; }
+
+/* ========== LOGIN SCREEN ========== */
+#login-screen {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.login-logo {
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--orange) 50%, var(--gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+.login-sub {
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 48px;
+}
+.login-prompt { font-size: 15px; color: var(--muted2); margin-bottom: 24px; font-weight: 500; }
+.staff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  max-width: 600px;
+  width: 100%;
+}
+.staff-card {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 20px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.staff-card:hover { transform: translateY(-4px); border-color: var(--gold); box-shadow: 0 8px 32px rgba(232,197,71,0.15); }
+.staff-card-avatar {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+}
+.staff-card-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.staff-card-role { font-size: 11px; color: var(--muted); letter-spacing: 0.05em; }
+.login-loading { color: var(--muted); font-size: 14px; }
+
+/* ========== PAGE HEADER ========== */
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 28px;
+  flex-wrap: wrap; gap: 12px;
+}
+.page-title { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+.page-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+/* ========== BUTTONS ========== */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition);
+  font-family: inherit;
+}
+.btn-primary { background: var(--gold); color: #0A0908; }
+.btn-primary:hover { background: #f0cf5a; transform: translateY(-1px); }
+.btn-ghost { background: var(--bg3); color: var(--text); border: 1px solid var(--border2); }
+.btn-ghost:hover { background: var(--bg4); border-color: var(--border2); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-danger { background: rgba(232,71,71,0.15); color: var(--red); border: 1px solid rgba(232,71,71,0.2); }
+.btn-danger:hover { background: rgba(232,71,71,0.25); }
+
+/* Rainbow button */
+.btn-rainbow {
+  position: relative;
+  isolation: isolate;
+  background: var(--bg3);
+  color: var(--text);
+  border: none;
+  padding: 10px 20px;
+  font-weight: 800;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-rainbow::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #E8C547, #E87047, #e847a0, #47A0E8, #47E8A0, #E8C547);
+  background-size: 300% 300%;
+  animation: rainbowShift 6s linear infinite;
+  z-index: -1;
+}
+.btn-rainbow::after {
+  content: '';
+  position: absolute;
+  inset: 1.5px;
+  border-radius: 7px;
+  background: var(--bg3);
+  z-index: -1;
+}
+@keyframes rainbowShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ========== CARDS ========== */
+.card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: all var(--transition);
+}
+.card:hover { transform: translateY(-2px); border-color: var(--border2); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.card-title { font-size: 13px; font-weight: 600; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* ========== DASHBOARD ========== */
+.dashboard-date-block {
+  background: linear-gradient(135deg, var(--bg3) 0%, var(--bg4) 100%);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 32px 36px;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.dashboard-date-block::after {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(232,197,71,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.date-weekday { font-size: 13px; color: var(--muted); font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+.date-main { font-size: 52px; font-weight: 900; letter-spacing: -0.04em; line-height: 1; color: var(--text); }
+.date-year { font-size: 16px; color: var(--muted2); margin-top: 8px; font-weight: 500; }
+.dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.dashboard-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.event-chip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg4);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  transition: all var(--transition);
+}
+.event-chip:hover { border-color: var(--border2); }
+.event-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.event-chip-title { flex: 1; font-size: 13px; font-weight: 600; }
+.event-chip-time { font-size: 11px; color: var(--muted); }
+.empty-state { color: var(--muted); font-size: 13px; text-align: center; padding: 24px 0; }
+.quick-link-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: center;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.quick-link-card:hover { transform: translateY(-2px); border-color: var(--gold); box-shadow: 0 4px 20px rgba(232,197,71,0.1); }
+.quick-link-icon { font-size: 28px; }
+.quick-link-label { font-size: 13px; font-weight: 600; }
+.quick-link-sub { font-size: 11px; color: var(--muted); }
+
+/* ========== CALENDAR ========== */
+.calendar-nav {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 20px;
+}
+.cal-month-label { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; flex: 1; }
+.cal-nav-btn {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+}
+.cal-nav-btn:hover { background: var(--bg4); }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border-radius: 12px; overflow: hidden; }
+.cal-day-header {
+  background: var(--bg3);
+  padding: 10px 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+.cal-cell {
+  background: var(--bg2);
+  min-height: 100px;
+  padding: 6px;
+  cursor: pointer;
+  transition: background var(--transition);
+  position: relative;
+}
+.cal-cell:hover { background: var(--bg3); }
+.cal-cell.other-month { opacity: 0.35; }
+.cal-cell.today { background: rgba(232,197,71,0.04); }
+.cal-cell.today .cal-date-num {
+  background: var(--gold);
+  color: #0A0908;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800;
+}
+.cal-date-num { font-size: 13px; font-weight: 600; color: var(--muted2); margin-bottom: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+.cal-event-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  cursor: pointer;
+}
+
+/* ========== MEETINGS ========== */
+.tab-bar {
+  display: flex; gap: 4px;
+  background: var(--bg3);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 20px;
+  width: fit-content;
+}
+.tab-item {
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.tab-item.active { background: var(--bg4); color: var(--text); }
+.meeting-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex; align-items: center; gap: 16px;
+}
+.meeting-card:hover { transform: translateY(-2px); border-color: var(--border2); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+.meeting-date-block {
+  background: var(--bg4);
+  border-radius: 8px;
+  padding: 10px 14px;
+  text-align: center;
+  min-width: 56px;
+  flex-shrink: 0;
+}
+.meeting-date-day { font-size: 22px; font-weight: 900; line-height: 1; }
+.meeting-date-mon { font-size: 11px; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+.meeting-info { flex: 1; min-width: 0; }
+.meeting-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.meeting-meta { font-size: 12px; color: var(--muted); }
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.badge-upcoming { background: rgba(71,160,232,0.15); color: var(--blue); }
+.badge-past { background: rgba(138,133,124,0.15); color: var(--muted); }
+.agenda-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg4);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  transition: all var(--transition);
+}
+.agenda-status-btn {
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  transition: all var(--transition);
+}
+.agenda-status-btn.discussed { background: rgba(71,232,160,0.2); border-color: var(--green); color: var(--green); }
+.agenda-status-btn.skip { background: rgba(232,71,71,0.15); border-color: var(--red); color: var(--red); }
+.agenda-status-btn.pending { color: var(--muted); }
+.agenda-body { flex: 1; min-width: 0; }
+.agenda-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.agenda-desc { font-size: 12px; color: var(--muted); }
+.agenda-by { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.agenda-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ========== STAFF PAGE ========== */
+.staff-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+.staff-list-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 20px;
+  text-align: center;
+  transition: all var(--transition);
+}
+.staff-list-card:hover { transform: translateY(-2px); border-color: var(--border2); }
+.staff-list-avatar {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+}
+.staff-list-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.staff-list-role { font-size: 12px; color: var(--muted); }
+
+/* ========== MODAL ========== */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 28px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: modalIn 0.2s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.modal-title { font-size: 18px; font-weight: 800; }
+.modal-close {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: var(--bg4);
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+}
+.modal-close:hover { color: var(--text); background: var(--bg2); }
+
+/* ========== FORM ========== */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 12px; font-weight: 600; color: var(--muted2); margin-bottom: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color var(--transition);
+  outline: none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--gold); }
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-select option { background: var(--bg4); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+/* ========== MEETING DETAIL ========== */
+#meeting-detail { display: none; flex: 1; padding: 32px; }
+#meeting-detail.active { display: block; }
+.back-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--muted);
+  cursor: pointer;
+  padding: 6px 0;
+  margin-bottom: 20px;
+  transition: color var(--transition);
+  background: none; border: none; font-family: inherit;
+}
+.back-btn:hover { color: var(--text); }
+
+/* ========== STATUS CHIPS ========== */
+.status-chip {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.status-pending { background: rgba(232,197,71,0.15); color: var(--gold); }
+.status-discussed { background: rgba(71,232,160,0.15); color: var(--green); }
+.status-skip { background: rgba(232,71,71,0.15); color: var(--red); }
+
+/* ========== TOAST ========== */
+#toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  animation: toastIn 0.3s ease;
+  display: flex; align-items: center; gap: 8px;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+.toast.success { border-color: rgba(71,232,160,0.3); color: var(--green); }
+.toast.error { border-color: rgba(232,71,71,0.3); color: var(--red); }
+
+/* ========== DIVIDER ========== */
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  #mobile-header { display: flex; }
+  #sidebar {
+    transform: translateX(-100%);
+    z-index: 300;
+    top: 0;
+  }
+  #sidebar.open { transform: translateX(0); }
+  #sidebar-overlay.open { display: block; }
+  #main { margin-left: 0; padding-top: 54px; }
+  #topbar { display: none; }
+  .page { padding: 20px 16px; }
+  #meeting-detail { padding: 20px 16px; }
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .dashboard-grid-3 { grid-template-columns: 1fr; }
+  .date-main { font-size: 38px; }
+  .calendar-grid { font-size: 12px; }
+  .cal-cell { min-height: 60px; padding: 4px; }
+  .cal-event-pill { display: none; }
+  .cal-cell.has-events::after {
+    content: '•';
+    color: var(--gold);
+    position: absolute;
+    bottom: 4px; left: 50%; transform: translateX(-50%);
+    font-size: 14px;
+  }
+  .staff-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+}
+</style>
+</head>
+<body>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-logo">Re:Base</div>
+  <div class="login-sub">Re:Poker Internal Portal</div>
+  <div class="login-prompt">スタッフを選択してください</div>
+  <div class="staff-grid" id="staff-grid">
+    <div class="login-loading">読み込み中...</div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app" style="display:none;">
+  <!-- Mobile Header -->
+  <div id="mobile-header">
+    <div class="mobile-logo">Re:Base</div>
+    <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+  </div>
+
+  <!-- Sidebar Overlay -->
+  <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-name">Re:Base</div>
+      <div class="logo-sub">Re:Poker Portal</div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">ダッシュボード</span>
+      </div>
+      <div class="nav-item" data-page="calendar" onclick="navigate('calendar')">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">カレンダー</span>
+      </div>
+      <div class="nav-item" data-page="meetings" onclick="navigate('meetings')">
+        <span class="nav-icon">🗣️</span>
+        <span class="nav-label">ミーティング</span>
+      </div>
+      <a class="nav-item" href="https://entity513.github.io/entity-task/" target="_blank">
+        <span class="nav-icon">✅</span>
+        <span class="nav-label">タスク</span>
+        <span style="font-size:10px;color:var(--muted);">↗</span>
+      </a>
+      <div class="nav-item" data-page="staff" onclick="navigate('staff')">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">スタッフ</span>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebar-avatar"></div>
+      <div class="user-info">
+        <div class="user-name" id="sidebar-name"></div>
+        <div class="user-role" id="sidebar-role"></div>
+      </div>
+      <button class="logout-btn" onclick="logout()" title="ログアウト">⏻</button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div id="main">
+
+    <!-- Topbar (PC) -->
+    <div id="topbar">
+      <button id="topbar-back-btn" onclick="topbarBack()">← 戻る</button>
+      <div class="topbar-right">
+        <button class="btn-rainbow btn-sm" onclick="openQuickAgendaModal()" style="padding:7px 14px;font-size:12px;">＋ アジェンダ追加</button>
+      </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div class="page active" id="page-dashboard">
+      <div class="dashboard-date-block">
+        <div class="date-weekday" id="dash-weekday"></div>
+        <div class="date-main" id="dash-date"></div>
+        <div class="date-year" id="dash-year"></div>
+      </div>
+      <div class="dashboard-grid">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📅 今日のイベント</div>
+          </div>
+          <div id="dash-events"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🗣️ 直近のミーティング</div>
+          </div>
+          <div id="dash-meetings"></div>
+        </div>
+      </div>
+      <div style="height:16px;"></div>
+      <div class="dashboard-grid-3">
+        <a class="quick-link-card" href="https://entity513.github.io/entity-task/" target="_blank">
+          <div class="quick-link-icon">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <polygon points="24,4 44,14 44,34 24,44 4,34 4,14" stroke="#E8C547" stroke-width="1.5" fill="none" opacity="0.6"/>
+              <polygon points="24,10 38,18 38,30 24,38 10,30 10,18" stroke="#E8C547" stroke-width="0.8" fill="none" opacity="0.3"/>
+              <line x1="16" y1="20" x2="22" y2="26" stroke="#47E8A0" stroke-width="2" stroke-linecap="round"/>
+              <line x1="22" y1="26" x2="32" y2="16" stroke="#47E8A0" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="24" cy="24" r="3" fill="#E8C547" opacity="0.5"/>
+            </svg>
+          </div>
+          <div class="quick-link-label">タスク管理</div>
+          <div class="quick-link-sub">Entity Task →</div>
+        </a>
+        <div class="quick-link-card" onclick="navigate('calendar')">
+          <div class="quick-link-icon">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <rect x="8" y="10" width="32" height="30" rx="3" stroke="#47A0E8" stroke-width="1.5" fill="none" opacity="0.6"/>
+              <line x1="8" y1="18" x2="40" y2="18" stroke="#47A0E8" stroke-width="1" opacity="0.4"/>
+              <line x1="16" y1="8" x2="16" y2="14" stroke="#47A0E8" stroke-width="2" stroke-linecap="round"/>
+              <line x1="32" y1="8" x2="32" y2="14" stroke="#47A0E8" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="18" cy="26" r="2" fill="#47A0E8" opacity="0.7"/>
+              <circle cx="24" cy="26" r="2" fill="#47A0E8" opacity="0.7"/>
+              <circle cx="30" cy="26" r="2" fill="#E8C547" opacity="0.9"/>
+              <circle cx="18" cy="33" r="2" fill="#47A0E8" opacity="0.5"/>
+              <circle cx="24" cy="33" r="2" fill="#47A0E8" opacity="0.5"/>
+            </svg>
+          </div>
+          <div class="quick-link-label">カレンダー</div>
+          <div class="quick-link-sub">イベントを確認</div>
+        </div>
+        <div class="quick-link-card" onclick="navigate('meetings')">
+          <div class="quick-link-icon">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <circle cx="24" cy="24" r="5" stroke="#A047E8" stroke-width="1.5" fill="none"/>
+              <circle cx="10" cy="12" r="3" stroke="#A047E8" stroke-width="1.2" fill="none" opacity="0.7"/>
+              <circle cx="38" cy="12" r="3" stroke="#A047E8" stroke-width="1.2" fill="none" opacity="0.7"/>
+              <circle cx="10" cy="36" r="3" stroke="#A047E8" stroke-width="1.2" fill="none" opacity="0.7"/>
+              <circle cx="38" cy="36" r="3" stroke="#A047E8" stroke-width="1.2" fill="none" opacity="0.7"/>
+              <line x1="13" y1="14" x2="20" y2="20" stroke="#A047E8" stroke-width="1" opacity="0.5"/>
+              <line x1="35" y1="14" x2="28" y2="20" stroke="#A047E8" stroke-width="1" opacity="0.5"/>
+              <line x1="13" y1="34" x2="20" y2="28" stroke="#A047E8" stroke-width="1" opacity="0.5"/>
+              <line x1="35" y1="34" x2="28" y2="28" stroke="#A047E8" stroke-width="1" opacity="0.5"/>
+              <circle cx="24" cy="24" r="2" fill="#A047E8"/>
+            </svg>
+          </div>
+          <div class="quick-link-label">ミーティング</div>
+          <div class="quick-link-sub">アジェンダを追加</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calendar Page -->
+    <div class="page" id="page-calendar">
+      <div class="page-header">
+        <div>
+          <div class="page-title">カレンダー</div>
+          <div class="page-sub">イベント・シフト・ミーティング管理</div>
+        </div>
+        <button class="btn-rainbow" onclick="openAddEventModal()">＋ イベント追加</button>
+      </div>
+      <div class="calendar-nav">
+        <button class="cal-nav-btn" onclick="calPrev()">‹</button>
+        <div class="cal-month-label" id="cal-month-label"></div>
+        <button class="cal-nav-btn" onclick="calNext()">›</button>
+        <button class="btn btn-ghost btn-sm" onclick="calToday()">今日</button>
+      </div>
+      <div class="calendar-grid" id="calendar-grid"></div>
+    </div>
+
+    <!-- Meetings Page -->
+    <div class="page" id="page-meetings">
+      <div class="page-header">
+        <div>
+          <div class="page-title">ミーティング</div>
+          <div class="page-sub">議題・アジェンダ管理</div>
+        </div>
+        <button class="btn btn-primary" onclick="openAddMeetingModal()">＋ 追加</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div class="tab-bar">
+          <div class="tab-item active" onclick="switchMeetingTab('upcoming', this)">Schedule</div>
+          <div class="tab-item" onclick="switchMeetingTab('past', this)">History</div>
+        </div>
+        <button class="btn-rainbow" onclick="openQuickAgendaModal()" style="padding:8px 16px;font-size:13px;">＋ アジェンダ追加</button>
+      </div>
+      <div id="meetings-list"></div>
+    </div>
+
+    <!-- Staff Page -->
+    <div class="page" id="page-staff">
+      <div class="page-header">
+        <div>
+          <div class="page-title">スタッフ</div>
+          <div class="page-sub">チームメンバー</div>
+        </div>
+      </div>
+      <div class="staff-list-grid" id="staff-list-grid"></div>
+    </div>
+
+    <!-- Meeting Detail -->
+    <div id="meeting-detail">
+      <button class="back-btn" onclick="closeMeetingDetail()">← ミーティング一覧</button>
+      <div id="meeting-detail-content"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Add Event Modal -->
+<div class="modal-overlay" id="modal-event">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">イベント追加</div>
+      <button class="modal-close" onclick="closeModal('modal-event')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">タイトル</label>
+      <input class="form-input" id="ev-title" placeholder="イベント名" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">日付</label>
+        <input class="form-input" id="ev-date" type="date" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">種別</label>
+        <select class="form-select" id="ev-type">
+          <option value="event">イベント</option>
+          <option value="meeting">ミーティング</option>
+          <option value="interview">面接</option>
+          <option value="shift">シフト</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">開始時間</label>
+        <input class="form-input" id="ev-start" type="time" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">終了時間</label>
+        <input class="form-input" id="ev-end" type="time" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">メモ</label>
+      <textarea class="form-textarea" id="ev-notes" placeholder="備考など"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-event')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveEvent()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Meeting Modal -->
+<div class="modal-overlay" id="modal-meeting">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">ミーティング追加</div>
+      <button class="modal-close" onclick="closeModal('modal-meeting')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">タイトル</label>
+      <input class="form-input" id="mt-title" placeholder="ミーティング名" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">日付</label>
+        <input class="form-input" id="mt-date" type="date" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">開始時間</label>
+        <input class="form-input" id="mt-time" type="time" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">ノート</label>
+      <textarea class="form-textarea" id="mt-notes" placeholder="内容・連絡事項など"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-meeting')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveMeeting()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Agenda Modal -->
+<div class="modal-overlay" id="modal-agenda">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">アジェンダ追加</div>
+      <button class="modal-close" onclick="closeModal('modal-agenda')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">タイトル</label>
+      <input class="form-input" id="ag-title" placeholder="議題タイトル" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">詳細</label>
+      <textarea class="form-textarea" id="ag-desc" placeholder="詳細内容"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-agenda')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveAgenda()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Agenda Modal -->
+<div class="modal-overlay" id="modal-quick-agenda">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">＋ アジェンダ追加</div>
+      <button class="modal-close" onclick="closeModal('modal-quick-agenda')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;padding:10px 14px;background:var(--bg4);border-radius:8px;">
+      📌 次のミーティングに自動で追加されます
+    </div>
+    <div class="form-group">
+      <label class="form-label">議題タイトル</label>
+      <input class="form-input" id="qa-title" placeholder="例：レジ周りの改善案" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">メモ（任意）</label>
+      <textarea class="form-textarea" id="qa-desc" placeholder="詳細・背景など" style="min-height:60px;"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-quick-agenda')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveQuickAgenda()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day Events Modal -->
+<div class="modal-overlay" id="modal-day">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-day-title"></div>
+      <button class="modal-close" onclick="closeModal('modal-day')">✕</button>
+    </div>
+    <div id="modal-day-events"></div>
+    <div style="margin-top:16px;">
+      <button class="btn-rainbow" style="width:100%;justify-content:center;" onclick="openAddEventFromDay()">＋ イベント追加</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== SUPABASE =====
+const SUPABASE_URL = 'https://fictnppwiryureyzayxf.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_eh4EtX6pcZjRSDEUj3Yyjw_SUggcm-Q';
+let sb;
+try {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch(e) {
+  console.error('Supabase init error:', e);
+}
+
+// ===== STATE =====
+let currentUser = null;
+let staffList = [];
+let calEvents = [];
+let meetings = [];
+let meetingAgendas = [];
+let calYear, calMonth;
+let meetingTab = 'upcoming';
+let selectedMeeting = null;
+let selectedDay = null;
+
+const now = new Date();
+calYear = now.getFullYear();
+calMonth = now.getMonth();
+
+// ===== DEMO DATA =====
+const demoStaff = [
+  { id: 'demo-1', name: 'マイケル', role: 'Manager', color: '#E8C547' },
+  { id: 'demo-2', name: 'あしゅ', role: 'Staff', color: '#47E8A0' },
+  { id: 'demo-3', name: 'アンプちゃん', role: 'Staff', color: '#47A0E8' },
+  { id: 'demo-4', name: 'どれみ', role: 'Staff', color: '#A047E8' },
+  { id: 'demo-5', name: 'ヨンフン', role: 'Staff', color: '#E87047' },
+];
+
+const todayStr = formatDate(now);
+const tomorrowStr = formatDate(new Date(now.getTime() + 86400000));
+
+const demoEvents = [
+  { id: 'de-1', title: 'オープン準備', date: todayStr, start_time: '10:00', end_time: '11:00', type: 'shift', staff_id: 'demo-1', notes: '' },
+  { id: 'de-2', title: 'スタッフミーティング', date: todayStr, start_time: '14:00', end_time: '15:00', type: 'meeting', staff_id: 'demo-1', notes: '' },
+  { id: 'de-3', title: 'ポーカートーナメント', date: tomorrowStr, start_time: '18:00', end_time: '22:00', type: 'event', staff_id: 'demo-1', notes: 'バウンティ形式' },
+  { id: 'de-4', title: '採用面接', date: tomorrowStr, start_time: '13:00', end_time: '13:30', type: 'interview', staff_id: 'demo-2', notes: '' },
+];
+
+const demoMeetings = [
+  { id: 'dm-1', title: '週次スタッフミーティング', date: todayStr, start_time: '14:00', status: 'upcoming', notes: '全員参加' },
+  { id: 'dm-2', title: '2店舗目戦略会議', date: tomorrowStr, start_time: '11:00', status: 'upcoming', notes: '' },
+  { id: 'dm-3', title: '先月振り返りMTG', date: formatDate(new Date(now.getTime() - 7*86400000)), start_time: '15:00', status: 'past', notes: '' },
+];
+
+const demoAgendas = [
+  { id: 'dag-1', meeting_id: 'dm-1', title: 'シフト確認', description: '来週のシフトを共有', added_by: 'demo-1', status: 'pending' },
+  { id: 'dag-2', meeting_id: 'dm-1', title: '売上報告', description: '先週の売上データ', added_by: 'demo-2', status: 'pending' },
+  { id: 'dag-3', meeting_id: 'dm-2', title: '物件候補確認', description: '3物件を比較検討', added_by: 'demo-1', status: 'pending' },
+];
+
+function formatDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+// ===== TOAST =====
+function toast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = type === 'success' ? '✓ ' + msg : '✕ ' + msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ===== SIDEBAR =====
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+// ===== NAVIGATION =====
+let navHistory = ['dashboard'];
+
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('meeting-detail').classList.remove('active');
+
+  const pageEl = document.getElementById('page-' + page);
+  if (pageEl) {
+    pageEl.classList.add('active');
+    document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
+  }
+
+  if (page === 'calendar') renderCalendar();
+  if (page === 'meetings') renderMeetings();
+  if (page === 'staff') renderStaffPage();
+  if (page === 'dashboard') renderDashboard();
+
+  navHistory.push(page);
+  updateBackBtn(page);
+  closeSidebar();
+}
+
+function updateBackBtn(page) {
+  const btn = document.getElementById('topbar-back-btn');
+  if (page === 'dashboard') {
+    btn.classList.remove('visible');
+  } else {
+    btn.classList.add('visible');
+  }
+}
+
+function topbarBack() {
+  if (navHistory.length > 1) {
+    navHistory.pop();
+    const prev = navHistory[navHistory.length - 1];
+    navigate(prev);
+    navHistory.pop(); // navigateで再pushされるので調整
+  } else {
+    navigate('dashboard');
+  }
+}
+
+// ===== LOGIN =====
+async function loadStaff() {
+  let data = null;
+  if (sb) {
+    try {
+      const res = await sb.from('staff').select('*').order('name');
+      if (!res.error && res.data && res.data.length > 0) {
+        data = res.data;
+      }
+    } catch(e) {}
+  }
+  if (!data) data = demoStaff;
+  staffList = data;
+  const onlineIds = await getOnlineStaffIds();
+  renderLoginCards(onlineIds);
+}
+
+function renderLoginCards(onlineIds = []) {
+  const grid = document.getElementById('staff-grid');
+  grid.innerHTML = '';
+  staffList.forEach(s => {
+    const initials = s.name.slice(0,2);
+    const color = s.color || '#E8C547';
+    const isOnline = onlineIds.includes(s.id);
+    const card = document.createElement('div');
+    card.className = 'staff-card';
+    card.innerHTML = `
+      <div class="staff-card-avatar-wrap">
+        <div class="staff-card-avatar" style="background:${color}22;color:${color};">${initials}</div>
+        <div class="online-dot ${isOnline ? 'online' : 'offline'}"></div>
+      </div>
+      <div class="staff-card-name">${s.name}</div>
+      <div class="staff-card-role">${s.role || 'Staff'}</div>
+    `;
+    card.onclick = () => loginAs(s);
+    grid.appendChild(card);
+  });
+}
+
+async function getOnlineStaffIds() {
+  const todayStr2 = formatDate(new Date());
+  if (sb) {
+    try {
+      const res = await sb.from('calendar_events').select('staff_id').eq('type', 'shift').eq('date', todayStr2);
+      if (!res.error && res.data) return [...new Set(res.data.map(e => e.staff_id))];
+    } catch(e) {}
+  }
+  // デモ: 最初の2人をオンライン扱い
+  return demoStaff.slice(0,2).map(s => s.id);
+}
+
+function loginAs(user) {
+  currentUser = user;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+
+  const color = user.color || '#E8C547';
+  const av = document.getElementById('sidebar-avatar');
+  av.style.background = color + '22';
+  av.style.color = color;
+  av.textContent = user.name.slice(0,2);
+  document.getElementById('sidebar-name').textContent = user.name;
+  document.getElementById('sidebar-role').textContent = user.role || 'Staff';
+
+  loadAllData();
+  renderDashboard();
+}
+
+function logout() {
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  navigate('dashboard');
+}
+
+// ===== DATA LOADING =====
+async function loadAllData() {
+  await Promise.all([loadCalEvents(), loadMeetings(), loadAgendas()]);
+}
+
+async function loadCalEvents() {
+  if (sb) {
+    try {
+      const res = await sb.from('calendar_events').select('*').order('date');
+      if (!res.error && res.data) { calEvents = res.data; return; }
+    } catch(e) {}
+  }
+  calEvents = [...demoEvents];
+}
+
+async function loadMeetings() {
+  if (sb) {
+    try {
+      const res = await sb.from('meetings').select('*').order('date');
+      if (!res.error && res.data) { meetings = res.data; return; }
+    } catch(e) {}
+  }
+  meetings = [...demoMeetings];
+}
+
+async function loadAgendas() {
+  if (sb) {
+    try {
+      const res = await sb.from('meeting_agendas').select('*').order('created_at');
+      if (!res.error && res.data) { meetingAgendas = res.data; return; }
+    } catch(e) {}
+  }
+  meetingAgendas = [...demoAgendas];
+}
+
+// ===== DASHBOARD =====
+const WEEKDAYS_JA = ['日曜日','月曜日','火曜日','水曜日','木曜日','金曜日','土曜日'];
+const MONTHS_JA = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+function renderDashboard() {
+  const d = new Date();
+  document.getElementById('dash-weekday').textContent = WEEKDAYS_JA[d.getDay()];
+  document.getElementById('dash-date').textContent = `${d.getMonth()+1}月${d.getDate()}日`;
+  document.getElementById('dash-year').textContent = `${d.getFullYear()}`;
+
+  const todayEvents = calEvents.filter(e => e.date === todayStr).sort((a,b) => (a.start_time||'').localeCompare(b.start_time||''));
+  const evContainer = document.getElementById('dash-events');
+  if (todayEvents.length === 0) {
+    evContainer.innerHTML = '<div class="empty-state">今日のイベントはありません</div>';
+  } else {
+    evContainer.innerHTML = todayEvents.map(e => `
+      <div class="event-chip">
+        <div class="event-dot" style="background:${getEventColor(e.type)};"></div>
+        <div class="event-chip-title">${e.title}</div>
+        <div class="event-chip-time">${e.start_time||''}</div>
+      </div>
+    `).join('');
+  }
+
+  const upMeetings = meetings.filter(m => m.date >= todayStr).sort((a,b) => a.date.localeCompare(b.date)).slice(0,3);
+  const mtContainer = document.getElementById('dash-meetings');
+  if (upMeetings.length === 0) {
+    mtContainer.innerHTML = '<div class="empty-state">予定のミーティングはありません</div>';
+  } else {
+    mtContainer.innerHTML = upMeetings.map(m => `
+      <div class="event-chip">
+        <div class="event-dot" style="background:var(--blue);"></div>
+        <div class="event-chip-title">${m.title}</div>
+        <div class="event-chip-time">${formatDisplayDate(m.date)}</div>
+      </div>
+    `).join('');
+  }
+}
+
+function formatDisplayDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+function getEventColor(type) {
+  const map = { event: 'var(--gold)', meeting: 'var(--blue)', interview: 'var(--purple)', shift: 'var(--green)' };
+  return map[type] || 'var(--muted)';
+}
+function getEventColorHex(type) {
+  const map = { event: '#E8C547', meeting: '#47A0E8', interview: '#A047E8', shift: '#47E8A0' };
+  return map[type] || '#8A857C';
+}
+
+// ===== CALENDAR =====
+function renderCalendar() {
+  const label = document.getElementById('cal-month-label');
+  label.textContent = `${calYear}年${calMonth+1}月`;
+
+  const grid = document.getElementById('calendar-grid');
+  grid.innerHTML = '';
+
+  const dayNames = ['日','月','火','水','木','金','土'];
+  dayNames.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-day-header';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const first = new Date(calYear, calMonth, 1);
+  const last = new Date(calYear, calMonth+1, 0);
+  const startDow = first.getDay();
+  const totalCells = Math.ceil((startDow + last.getDate()) / 7) * 7;
+
+  for (let i = 0; i < totalCells; i++) {
+    const dayOffset = i - startDow;
+    const d = new Date(calYear, calMonth, 1 + dayOffset);
+    const isCurrentMonth = d.getMonth() === calMonth;
+    const dateStr = formatDate(d);
+    const isToday = dateStr === todayStr;
+
+    const dayEvents = calEvents.filter(e => e.date === dateStr);
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell' + (!isCurrentMonth ? ' other-month' : '') + (isToday ? ' today' : '') + (dayEvents.length > 0 ? ' has-events' : '');
+    cell.onclick = () => openDayModal(d, dayEvents, dateStr);
+
+    const numEl = document.createElement('div');
+    numEl.className = 'cal-date-num';
+    numEl.textContent = d.getDate();
+    cell.appendChild(numEl);
+
+    dayEvents.slice(0,3).forEach(ev => {
+      const pill = document.createElement('div');
+      pill.className = 'cal-event-pill';
+      const color = getEventColorHex(ev.type);
+      pill.style.background = color + '22';
+      pill.style.color = color;
+      pill.textContent = ev.title;
+      cell.appendChild(pill);
+    });
+    if (dayEvents.length > 3) {
+      const more = document.createElement('div');
+      more.className = 'cal-event-pill';
+      more.style.background = 'var(--bg4)';
+      more.style.color = 'var(--muted)';
+      more.textContent = `+${dayEvents.length - 3}件`;
+      cell.appendChild(more);
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
+function calPrev() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); }
+function calNext() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); }
+function calToday() { const n = new Date(); calYear = n.getFullYear(); calMonth = n.getMonth(); renderCalendar(); }
+
+function openDayModal(d, events, dateStr) {
+  selectedDay = dateStr;
+  document.getElementById('modal-day-title').textContent = `${d.getMonth()+1}月${d.getDate()}日 (${['日','月','火','水','木','金','土'][d.getDay()]})`;
+  const container = document.getElementById('modal-day-events');
+  if (events.length === 0) {
+    container.innerHTML = '<div class="empty-state">イベントはありません</div>';
+  } else {
+    container.innerHTML = events.map(ev => {
+      const color = getEventColorHex(ev.type);
+      return `<div class="event-chip" style="margin-bottom:8px;">
+        <div class="event-dot" style="background:${color};"></div>
+        <div>
+          <div class="event-chip-title">${ev.title}</div>
+          <div class="event-chip-time">${ev.start_time||''}${ev.end_time ? ' ~ '+ev.end_time : ''}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('modal-day').classList.add('open');
+}
+
+function openAddEventFromDay() {
+  closeModal('modal-day');
+  openAddEventModal(selectedDay);
+}
+
+function openAddEventModal(dateStr) {
+  document.getElementById('ev-title').value = '';
+  document.getElementById('ev-date').value = dateStr || todayStr;
+  document.getElementById('ev-type').value = 'event';
+  document.getElementById('ev-start').value = '';
+  document.getElementById('ev-end').value = '';
+  document.getElementById('ev-notes').value = '';
+  document.getElementById('modal-event').classList.add('open');
+}
+
+async function saveEvent() {
+  const title = document.getElementById('ev-title').value.trim();
+  const date = document.getElementById('ev-date').value;
+  const type = document.getElementById('ev-type').value;
+  const start_time = document.getElementById('ev-start').value;
+  const end_time = document.getElementById('ev-end').value;
+  const notes = document.getElementById('ev-notes').value;
+  if (!title || !date) { toast('タイトルと日付を入力してください', 'error'); return; }
+
+  const ev = { title, date, type, start_time, end_time, notes, staff_id: currentUser?.id };
+
+  if (sb) {
+    try {
+      const res = await sb.from('calendar_events').insert([ev]);
+      if (!res.error) { await loadCalEvents(); toast('イベントを追加しました'); }
+      else { calEvents.push({ ...ev, id: 'local-' + Date.now() }); toast('イベントを追加しました'); }
+    } catch(e) { calEvents.push({ ...ev, id: 'local-' + Date.now() }); toast('イベントを追加しました'); }
+  } else {
+    calEvents.push({ ...ev, id: 'local-' + Date.now() });
+    toast('イベントを追加しました');
+  }
+
+  closeModal('modal-event');
+  renderCalendar();
+  renderDashboard();
+}
+
+// ===== MEETINGS =====
+function renderMeetings() {
+  const container = document.getElementById('meetings-list');
+  const filtered = meetings.filter(m => {
+    if (meetingTab === 'upcoming') return m.date >= todayStr;
+    return m.date < todayStr;
+  }).sort((a,b) => meetingTab === 'upcoming' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state">ミーティングはありません</div>';
+    return;
+  }
+  container.innerHTML = filtered.map(m => {
+    const d = new Date(m.date + 'T00:00:00');
+    const monNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const isUpcoming = m.date >= todayStr;
+    return `
+      <div class="meeting-card" onclick="openMeetingDetail('${m.id}')">
+        <div class="meeting-date-block">
+          <div class="meeting-date-day">${d.getDate()}</div>
+          <div class="meeting-date-mon">${monNames[d.getMonth()]}</div>
+        </div>
+        <div class="meeting-info">
+          <div class="meeting-title">${m.title}</div>
+          <div class="meeting-meta">${m.start_time||''} ${m.notes ? '· '+m.notes : ''}</div>
+        </div>
+        <div class="badge ${isUpcoming ? 'badge-upcoming' : 'badge-past'}">${isUpcoming ? 'Upcoming' : 'Past'}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function switchMeetingTab(tab, el) {
+  meetingTab = tab;
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderMeetings();
+}
+
+function openAddMeetingModal() {
+  document.getElementById('mt-title').value = '';
+  document.getElementById('mt-date').value = todayStr;
+  document.getElementById('mt-time').value = '';
+  document.getElementById('mt-notes').value = '';
+  document.getElementById('modal-meeting').classList.add('open');
+}
+
+async function saveMeeting() {
+  const title = document.getElementById('mt-title').value.trim();
+  const date = document.getElementById('mt-date').value;
+  const start_time = document.getElementById('mt-time').value;
+  const notes = document.getElementById('mt-notes').value;
+  if (!title || !date) { toast('タイトルと日付を入力してください', 'error'); return; }
+
+  const mt = { title, date, start_time, notes, status: date >= todayStr ? 'upcoming' : 'past' };
+
+  if (sb) {
+    try {
+      const res = await sb.from('meetings').insert([mt]);
+      if (!res.error) { await loadMeetings(); }
+      else { meetings.push({ ...mt, id: 'local-' + Date.now() }); }
+    } catch(e) { meetings.push({ ...mt, id: 'local-' + Date.now() }); }
+  } else {
+    meetings.push({ ...mt, id: 'local-' + Date.now() });
+  }
+
+  toast('ミーティングを追加しました');
+  closeModal('modal-meeting');
+  renderMeetings();
+}
+
+function openMeetingDetail(id) {
+  selectedMeeting = meetings.find(m => m.id === id);
+  if (!selectedMeeting) return;
+
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const detail = document.getElementById('meeting-detail');
+  detail.classList.add('active');
+
+  renderMeetingDetail();
+}
+
+function renderMeetingDetail() {
+  if (!selectedMeeting) return;
+  const m = selectedMeeting;
+  const d = new Date(m.date + 'T00:00:00');
+  const agendas = meetingAgendas.filter(a => a.meeting_id === m.id);
+
+  const statusLabel = { pending: '予定', discussed: '済み', skip: 'スキップ' };
+
+  document.getElementById('meeting-detail-content').innerHTML = `
+    <div style="margin-bottom:24px;">
+      <h2 style="font-size:26px;font-weight:900;letter-spacing:-0.03em;margin-bottom:8px;">${m.title}</h2>
+      <div style="font-size:14px;color:var(--muted2);">📅 ${d.getMonth()+1}月${d.getDate()}日 ${m.start_time || ''}</div>
+      ${m.notes ? `<div style="font-size:13px;color:var(--muted);margin-top:6px;">${m.notes}</div>` : ''}
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:700;">アジェンダ <span style="color:var(--muted);font-size:13px;font-weight:400;">(${agendas.length}件)</span></div>
+      <button class="btn btn-primary btn-sm" onclick="openAddAgendaModal()">＋ 追加</button>
+    </div>
+    ${agendas.length === 0
+      ? '<div class="empty-state">アジェンダはまだありません</div>'
+      : agendas.map(a => {
+          const addedBy = staffList.find(s => s.id === a.added_by);
+          return `
+          <div class="agenda-item" id="agenda-${a.id}">
+            <button class="agenda-status-btn ${a.status}" onclick="cycleAgendaStatus('${a.id}')" title="ステータス変更">
+              ${a.status === 'discussed' ? '✓' : a.status === 'skip' ? '✕' : '○'}
+            </button>
+            <div class="agenda-body">
+              <div class="agenda-title" style="${a.status === 'discussed' ? 'text-decoration:line-through;opacity:0.5;' : ''}">${a.title}</div>
+              ${a.description ? `<div class="agenda-desc">${a.description}</div>` : ''}
+              ${addedBy ? `<div class="agenda-by">by ${addedBy.name}</div>` : ''}
+            </div>
+            <span class="status-chip status-${a.status}">${statusLabel[a.status]||a.status}</span>
+          </div>`;
+        }).join('')
+    }
+  `;
+}
+
+function closeMeetingDetail() {
+  document.getElementById('meeting-detail').classList.remove('active');
+  navigate('meetings');
+}
+
+function openAddAgendaModal() {
+  document.getElementById('ag-title').value = '';
+  document.getElementById('ag-desc').value = '';
+  document.getElementById('modal-agenda').classList.add('open');
+}
+
+function openQuickAgendaModal() {
+  document.getElementById('qa-title').value = '';
+  document.getElementById('qa-desc').value = '';
+  document.getElementById('modal-quick-agenda').classList.add('open');
+}
+
+async function saveQuickAgenda() {
+  const title = document.getElementById('qa-title').value.trim();
+  const description = document.getElementById('qa-desc').value;
+  if (!title) { toast('タイトルを入力してください', 'error'); return; }
+
+  // 次のミーティングを自動選択
+  const nextMeeting = meetings
+    .filter(m => m.date >= formatDate(new Date()))
+    .sort((a,b) => a.date.localeCompare(b.date))[0];
+
+  if (!nextMeeting) {
+    toast('次のミーティングが見つかりません', 'error');
+    return;
+  }
+
+  const ag = { meeting_id: nextMeeting.id, title, description, added_by: currentUser?.id, status: 'pending' };
+
+  if (sb) {
+    try {
+      const res = await sb.from('meeting_agendas').insert([ag]);
+      if (!res.error) { await loadAgendas(); }
+      else { meetingAgendas.push({ ...ag, id: 'local-' + Date.now() }); }
+    } catch(e) { meetingAgendas.push({ ...ag, id: 'local-' + Date.now() }); }
+  } else {
+    meetingAgendas.push({ ...ag, id: 'local-' + Date.now() });
+  }
+
+  toast(`「${nextMeeting.title}」にアジェンダを追加しました`);
+  closeModal('modal-quick-agenda');
+}
+
+async function saveAgenda() {
+  if (!selectedMeeting) return;
+  const title = document.getElementById('ag-title').value.trim();
+  const description = document.getElementById('ag-desc').value;
+  if (!title) { toast('タイトルを入力してください', 'error'); return; }
+
+  const ag = { meeting_id: selectedMeeting.id, title, description, added_by: currentUser?.id, status: 'pending' };
+
+  if (sb) {
+    try {
+      const res = await sb.from('meeting_agendas').insert([ag]);
+      if (!res.error) { await loadAgendas(); }
+      else { meetingAgendas.push({ ...ag, id: 'local-' + Date.now() }); }
+    } catch(e) { meetingAgendas.push({ ...ag, id: 'local-' + Date.now() }); }
+  } else {
+    meetingAgendas.push({ ...ag, id: 'local-' + Date.now() });
+  }
+
+  toast('アジェンダを追加しました');
+  closeModal('modal-agenda');
+  renderMeetingDetail();
+}
+
+async function cycleAgendaStatus(id) {
+  const order = ['pending', 'discussed', 'skip'];
+  const ag = meetingAgendas.find(a => a.id === id);
+  if (!ag) return;
+  const next = order[(order.indexOf(ag.status) + 1) % order.length];
+  ag.status = next;
+
+  if (sb) {
+    try { await sb.from('meeting_agendas').update({ status: next }).eq('id', id); } catch(e) {}
+  }
+  renderMeetingDetail();
+}
+
+// ===== STAFF PAGE =====
+async function renderStaffPage() {
+  const onlineIds = await getOnlineStaffIds();
+  const grid = document.getElementById('staff-list-grid');
+  grid.innerHTML = staffList.map(s => {
+    const color = s.color || '#E8C547';
+    const isOnline = onlineIds.includes(s.id);
+    return `
+      <div class="staff-list-card">
+        <div style="position:relative;display:inline-block;margin-bottom:12px;">
+          <div class="staff-list-avatar" style="background:${color}22;color:${color};margin:0;">${s.name.slice(0,2)}</div>
+          <div class="online-dot ${isOnline ? 'online' : 'offline'}" style="bottom:1px;right:1px;border-color:var(--bg3);"></div>
+        </div>
+        <div class="staff-list-name">${s.name}</div>
+        <div class="staff-list-role">${s.role || 'Staff'}</div>
+        ${isOnline ? '<div style="font-size:10px;color:var(--green);font-weight:600;margin-top:6px;letter-spacing:0.05em;">● 出勤中</div>' : '<div style="font-size:10px;color:var(--muted);margin-top:6px;">オフライン</div>'}
+      </div>
+    `;
+  }).join('');
+}
+
+// ===== MODAL =====
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+// ===== INIT =====
+loadStaff();
+</script>
+</body>
+</html>
