@@ -977,6 +977,7 @@ a { color: inherit; text-decoration: none; }
         <div class="cal-month-label" id="cal-month-label"></div>
         <button class="cal-nav-btn" onclick="calNext()">›</button>
         <button class="btn btn-ghost btn-sm" onclick="calToday()">今日</button>
+        <button class="btn btn-ghost btn-sm" id="shift-toggle-btn" onclick="toggleShiftDisplay()" style="font-size:11px;">👤 シフト表示</button>
       </div>
       <div class="calendar-grid" id="calendar-grid"></div>
     </div>
@@ -1184,6 +1185,28 @@ a { color: inherit; text-decoration: none; }
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-agenda')">キャンセル</button>
       <button class="btn btn-primary" onclick="saveAgenda()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Resource Modal -->
+<div class="modal-overlay" id="modal-resource">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">📎 資料を追加</div>
+      <button class="modal-close" onclick="closeModal('modal-resource')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">タイトル</label>
+      <input class="form-input" id="res-title" placeholder="例：7月売上分析" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">URL</label>
+      <input class="form-input" id="res-url" placeholder="https://..." type="url" />
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-resource')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveResource()">追加</button>
     </div>
   </div>
 </div>
@@ -1588,7 +1611,7 @@ function renderDashboard() {
     evContainer.innerHTML = '<div class="empty-state">今日のイベントはありません</div>';
   } else {
     evContainer.innerHTML = todayEvents.map(e => `
-      <div class="event-chip">
+      <div class="event-chip" style="cursor:pointer;" onclick="navigate('calendar')">
         <div class="event-dot" style="background:${getEventColor(e.type)};"></div>
         <div class="event-chip-title">${e.title}</div>
         <div class="event-chip-time">${e.start_time||''}</div>
@@ -1602,7 +1625,7 @@ function renderDashboard() {
     mtContainer.innerHTML = '<div class="empty-state">予定のミーティングはありません</div>';
   } else {
     mtContainer.innerHTML = upMeetings.map(m => `
-      <div class="event-chip">
+      <div class="event-chip" style="cursor:pointer;" onclick="openMeetingDetail('${m.id}')">
         <div class="event-dot" style="background:var(--blue);"></div>
         <div class="event-chip-title">${m.title}</div>
         <div class="event-chip-time">${formatDisplayDate(m.date)}</div>
@@ -1654,7 +1677,7 @@ function renderCalendar() {
     const dateStr = formatDate(d);
     const isToday = dateStr === todayStr;
 
-    const dayEvents = calEvents.filter(e => e.date === dateStr);
+    const dayEvents = calEvents.filter(e => e.date === dateStr && (showShifts || e.type !== 'shift'));
     const cell = document.createElement('div');
     cell.className = 'cal-cell' + (!isCurrentMonth ? ' other-month' : '') + (isToday ? ' today' : '') + (dayEvents.length > 0 ? ' has-events' : '');
     cell.onclick = () => openDayModal(d, dayEvents, dateStr);
@@ -1689,6 +1712,18 @@ function renderCalendar() {
 function calPrev() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); }
 function calNext() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); }
 function calToday() { const n = new Date(); calYear = n.getFullYear(); calMonth = n.getMonth(); renderCalendar(); }
+
+let showShifts = false;
+function toggleShiftDisplay() {
+  showShifts = !showShifts;
+  const btn = document.getElementById('shift-toggle-btn');
+  if (btn) {
+    btn.style.color = showShifts ? 'var(--green)' : '';
+    btn.style.borderColor = showShifts ? 'var(--green)' : '';
+    btn.textContent = showShifts ? '👤 シフト非表示' : '👤 シフト表示';
+  }
+  renderCalendar();
+}
 
 function openDayModal(d, events, dateStr) {
   selectedDay = dateStr;
@@ -1850,6 +1885,31 @@ function renderMeetingDetail() {
       ${m.notes ? `<div style="font-size:13px;color:var(--muted);margin-top:6px;">${m.notes}</div>` : ''}
     </div>
     <div class="divider"></div>
+    ${(() => {
+      const resources = m.resources || [];
+      return `
+    <div style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:700;">📎 資料</div>
+        <button class="btn btn-ghost btn-sm" onclick="openAddResourceModal()">＋ 追加</button>
+      </div>
+      <div id="resource-list">
+        ${resources.length === 0
+          ? '<div class="empty-state" style="padding:12px 0;font-size:12px;">資料はまだありません</div>'
+          : resources.map(r => `
+            <a href="${r.url}" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg4);border-radius:8px;margin-bottom:8px;border:1px solid var(--border);text-decoration:none;color:var(--text);">
+              <span style="font-size:18px;">📄</span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</div>
+                <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.url}</div>
+              </div>
+              <span style="font-size:14px;color:var(--muted);">→</span>
+            </a>
+          `).join('')
+        }
+      </div>
+    </div>`;
+    })()}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div style="font-size:16px;font-weight:700;">アジェンダ <span style="color:var(--muted);font-size:13px;font-weight:400;">(${agendas.length}件)</span></div>
       <button class="btn btn-primary btn-sm" onclick="openAddAgendaModal()">＋ 追加</button>
@@ -1884,6 +1944,35 @@ function openAddAgendaModal() {
   document.getElementById('ag-title').value = '';
   document.getElementById('ag-desc').value = '';
   document.getElementById('modal-agenda').classList.add('open');
+}
+
+function openAddResourceModal() {
+  document.getElementById('res-title').value = '';
+  document.getElementById('res-url').value = '';
+  document.getElementById('modal-resource').classList.add('open');
+}
+
+async function saveResource() {
+  if (!selectedMeeting) return;
+  const title = document.getElementById('res-title').value.trim();
+  const url = document.getElementById('res-url').value.trim();
+  if (!title || !url) { toast('タイトルとURLを入力してください', 'error'); return; }
+
+  const currentResources = selectedMeeting.resources || [];
+  const newResources = [...currentResources, { title, url }];
+
+  if (sb) {
+    try {
+      await sb.from('meetings').update({ resources: newResources }).eq('id', selectedMeeting.id);
+    } catch(e) {}
+  }
+  selectedMeeting.resources = newResources;
+  const idx = meetings.findIndex(m => m.id === selectedMeeting.id);
+  if (idx >= 0) meetings[idx].resources = newResources;
+
+  toast('資料を追加しました');
+  closeModal('modal-resource');
+  renderMeetingDetail();
 }
 
 function openQuickAgendaModal() {
