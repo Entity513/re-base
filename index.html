@@ -891,7 +891,7 @@ a { color: inherit; text-decoration: none; }
       </div>
       <!-- Agent Status Card -->
       <div id="agent-status-card" style="background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;">
-        <div style="font-size:14px;font-weight:700;margin-bottom:14px;">🟢 出勤中のエージェント</div>
+        <div id="agent-status-title" style="font-size:14px;font-weight:700;margin-bottom:14px;">📅 本日のエージェント</div>
         <div id="agent-status-list" style="display:flex;gap:16px;overflow-x:auto;padding-bottom:4px;">
           <div class="empty-state" style="padding:8px 0;">読み込み中...</div>
         </div>
@@ -1510,28 +1510,67 @@ const WEEKDAYS_JA = ['日曜日','月曜日','火曜日','水曜日','木曜日'
 const MONTHS_JA = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 
 async function renderAgentStatus() {
-  const { ids: onlineIds, shifts } = await getOnlineStaffIds();
+  const { ids: allShiftIds, shifts } = await getOnlineStaffIds();
   const container = document.getElementById('agent-status-list');
-  if (onlineIds.length === 0) {
+  if (allShiftIds.length === 0) {
     container.innerHTML = '<div class="empty-state" style="padding:8px 0;">本日の出勤予定はありません</div>';
     return;
   }
-  container.innerHTML = onlineIds.map(id => {
+
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  const fmtTime = t => t ? t.split(':').slice(0,2).join(':') : '';
+  const toMin = t => {
+    if (!t) return null;
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  // 勤務中か判定（開始前・勤務中・終了後で分類）
+  const categorized = allShiftIds.map(id => {
+    const shift = shifts[id];
+    const startMin = toMin(shift?.start_time);
+    const endMin = toMin(shift?.end_time);
+    let status = 'upcoming'; // 開始前
+    if (startMin !== null && endMin !== null) {
+      if (nowMin >= startMin && nowMin < endMin) status = 'active'; // 勤務中
+      else if (nowMin >= endMin) status = 'done'; // 終了
+    }
+    return { id, shift, status };
+  }).filter(e => e.status !== 'done'); // 終了済みは非表示
+
+  if (categorized.length === 0) {
+    container.innerHTML = '<div class="empty-state" style="padding:8px 0;">本日の出勤予定はありません</div>';
+    return;
+  }
+
+  // タイトル更新
+  const activeCount = categorized.filter(e => e.status === 'active').length;
+  const titleEl = document.getElementById('agent-status-title');
+  if (titleEl) {
+    titleEl.textContent = activeCount > 0 ? `🟢 稼働中のエージェント (${activeCount}人)` : '📅 本日の出勤予定';
+  }
+
+  container.innerHTML = categorized.map(({ id, shift, status }) => {
     const staff = staffList.find(s => s.id === id);
     if (!staff) return '';
     const name = staff.name || 'Unknown';
     const avatarSrc = STAFF_AVATARS[id];
     const color = staff.color || '#E8C547';
+    const isActive = status === 'active';
     const avatarHtml = avatarSrc
-      ? `<img src="${avatarSrc}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;" />`
-      : `<div style="width:44px;height:44px;border-radius:50%;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;">${name.charAt(0)}</div>`;
-    const shift = shifts[id];
-    const fmtTime = t => t ? t.split(':').slice(0,2).join(':') : '';
-    const timeLabel = shift && shift.start_time ? `${fmtTime(shift.start_time)}-${fmtTime(shift.end_time)}` : '';
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;">
+      ? `<img src="${avatarSrc}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid ${isActive ? 'var(--green)' : 'transparent'};" />`
+      : `<div style="width:44px;height:44px;border-radius:50%;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;border:2px solid ${isActive ? 'var(--green)' : 'transparent'};">${name.charAt(0)}</div>`;
+    const timeLabel = shift?.start_time ? `${fmtTime(shift.start_time)}-${fmtTime(shift.end_time)}` : '';
+    const statusLabel = isActive
+      ? `<div style="font-size:10px;color:var(--green);font-weight:600;">● 稼働中</div>`
+      : `<div style="font-size:10px;color:var(--muted);">${fmtTime(shift?.start_time)}〜</div>`;
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;">
       ${avatarHtml}
       <div style="font-size:12px;font-weight:600;white-space:nowrap;">${name}</div>
-      ${timeLabel ? `<div style="font-size:10px;color:var(--muted);margin-top:-2px;">${timeLabel}</div>` : ''}
+      ${statusLabel}
+      ${timeLabel && !isActive ? '' : timeLabel ? `<div style="font-size:10px;color:var(--muted);">${timeLabel}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -1543,7 +1582,7 @@ function renderDashboard() {
   document.getElementById('dash-year').textContent = `${d.getFullYear()}`;
   renderAgentStatus();
 
-  const todayEvents = calEvents.filter(e => e.date === todayStr).sort((a,b) => (a.start_time||'').localeCompare(b.start_time||''));
+  const todayEvents = calEvents.filter(e => e.date === todayStr && e.type !== 'shift').sort((a,b) => (a.start_time||'').localeCompare(b.start_time||''));
   const evContainer = document.getElementById('dash-events');
   if (todayEvents.length === 0) {
     evContainer.innerHTML = '<div class="empty-state">今日のイベントはありません</div>';
