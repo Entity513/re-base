@@ -1513,7 +1513,7 @@ async function renderAgentStatus() {
   const { ids: allShiftIds, shifts } = await getOnlineStaffIds();
   const container = document.getElementById('agent-status-list');
   if (allShiftIds.length === 0) {
-    container.innerHTML = '<div class="empty-state" style="padding:8px 0;">本日の出勤予定はありません</div>';
+    container.innerHTML = '<div class="empty-state" style="padding:8px 0;">本日の稼働予定はありません</div>';
     return;
   }
 
@@ -1541,7 +1541,7 @@ async function renderAgentStatus() {
   }).filter(e => e.status !== 'done'); // 終了済みは非表示
 
   if (categorized.length === 0) {
-    container.innerHTML = '<div class="empty-state" style="padding:8px 0;">本日の出勤予定はありません</div>';
+    container.innerHTML = '<div class="empty-state" style="padding:8px 0;">本日の稼働予定はありません</div>';
     return;
   }
 
@@ -1977,7 +1977,7 @@ async function renderStaffPage() {
         </div>
         <div class="staff-list-name">${s.name}</div>
         <div class="staff-list-role">${s.role || 'Staff'}</div>
-        ${isOnline ? '<div style="font-size:10px;color:var(--green);font-weight:600;margin-top:6px;letter-spacing:0.05em;">● 出勤中</div>' : '<div style="font-size:10px;color:var(--muted);margin-top:6px;">オフライン</div>'}
+        ${isOnline ? '<div style="font-size:10px;color:var(--green);font-weight:600;margin-top:6px;letter-spacing:0.05em;">● 稼働中</div>' : '<div style="font-size:10px;color:var(--muted);margin-top:6px;">オフライン</div>'}
       </div>
     `;
   }).join('');
