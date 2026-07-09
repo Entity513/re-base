@@ -1135,7 +1135,7 @@ a { color: inherit; text-decoration: none; }
       <div style="height:1px;background:var(--border);margin:8px 4px;"></div>
       <div class="nav-item" data-page="briefing" onclick="navigate('briefing')">
         <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><line x1="8" y1="4" x2="8" y2="8.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="8" y1="8.5" x2="11" y2="10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
-        <span class="nav-label">Briefing</span>
+        <span class="nav-label">朝礼</span>
       </div>
       <div class="nav-item" data-page="reports" onclick="navigate('reports')">
         <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 1.5h7l3 3V14.5H3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><line x1="5.5" y1="7" x2="10.5" y2="7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="5.5" y1="9.5" x2="10.5" y2="9.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="5.5" y1="12" x2="8.5" y2="12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
@@ -1224,11 +1224,13 @@ a { color: inherit; text-decoration: none; }
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px;">
             <div style="font-size:12px;font-weight:600;color:var(--muted2);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 2h12v9H5l-3 3V2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
-              Post a Bubble Comment
+              BUBBLE TRANSMIT
             </div>
-            <div style="display:flex;gap:8px;">
-              <input class="form-input" id="bubble-text" placeholder="Short message (shows on your avatar for 12h)" style="flex:1;font-size:12px;padding:8px 10px;" maxlength="60" />
-              <button class="btn btn-primary btn-sm" onclick="postBubbleComment()">Post</button>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <div style="position:relative;flex:1;">
+                <input class="form-input" id="bubble-text" placeholder="ひとことメッセージ（12h表示）" style="flex:1;font-size:12px;padding:8px 12px 8px 10px;background:rgba(71,160,232,0.06);border:1px solid rgba(71,160,232,0.18);letter-spacing:0.03em;" maxlength="60" />
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="postBubbleComment()" style="background:transparent;border:1px solid rgba(71,160,232,0.4);color:var(--blue);font-size:11px;letter-spacing:0.1em;padding:7px 14px;">SEND</button>
             </div>
           </div>
           <!-- Events + Meetings -->
@@ -1250,17 +1252,17 @@ a { color: inherit; text-decoration: none; }
           <!-- News Section -->
           <div class="card" style="margin-top:14px;">
             <div class="card-header">
-              <div class="card-title">News</div>
-              <button class="btn btn-ghost btn-sm" onclick="openNewsPostModal()">+ Post</button>
+              <div class="card-title">ニュース</div>
+              <button class="btn btn-ghost btn-sm" onclick="openNewsPostModal()">+ 投稿</button>
             </div>
             <div id="dash-news">
-              <div class="empty-state">No news posted yet</div>
+              <div class="empty-state">ニュースはまだありません</div>
             </div>
           </div>
 
-          <!-- Competitor Intelligence -->
+          <!-- 競合情報ligence -->
           <div style="margin-top:14px;">
-            <div style="font-size:13px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Competitor Intel</div>
+            <div style="font-size:13px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">競合情報</div>
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;" id="comp-intel-grid">
             </div>
           </div>
@@ -1354,8 +1356,8 @@ a { color: inherit; text-decoration: none; }
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
         <div class="tab-bar">
-          <div class="tab-item active" onclick="switchMeetingTab('upcoming', this)">Schedule</div>
-          <div class="tab-item" onclick="switchMeetingTab('past', this)">History</div>
+          <div class="tab-item active" onclick="switchMeetingTab('upcoming', this)">予定</div>
+          <div class="tab-item" onclick="switchMeetingTab('past', this)">履歴</div>
         </div>
         <button class="btn-rainbow" onclick="openQuickAgendaModal()" style="padding:8px 16px;font-size:13px;">＋ アジェンダ追加</button>
       </div>
@@ -1433,22 +1435,22 @@ a { color: inherit; text-decoration: none; }
     <div class="page" id="page-briefing">
       <div class="page-header">
         <div>
-          <div class="page-title">Morning Briefing</div>
+          <div class="page-title">朝礼ブリーフィング</div>
           <div class="page-sub" id="briefing-date-sub"></div>
         </div>
-        <button class="btn btn-primary" onclick="openBriefingEditModal()">+ Add Item</button>
+        <button class="btn btn-primary" style="background:transparent;border:1px solid var(--blue);color:var(--blue);font-size:12px;letter-spacing:0.08em;text-transform:uppercase;" onclick="openBriefingEditModal()">＋ 項目追加</button>
       </div>
       <div style="background:linear-gradient(135deg,rgba(71,160,232,0.08),rgba(71,232,160,0.08));border:1px solid rgba(71,160,232,0.15);border-radius:12px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:var(--muted2);">
-        <strong style="color:var(--blue);">First In?</strong> You're responsible for reviewing and updating today's briefing before everyone arrives.
+        <strong style="color:var(--blue);">最初の出勤？</strong> 全員が揃う前に、今日の共有事項を確認・更新してください。
       </div>
       <div id="briefing-carryover" style="display:none;margin-bottom:16px;">
-        <div style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:8px;">Carried Over from Yesterday</div>
+        <div style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:8px;">前日からの持ち越し</div>
         <div id="briefing-carryover-list"></div>
       </div>
       <div class="briefing-card">
-        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Today's Items</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">本日の共有事項</div>
         <div id="briefing-items-list">
-          <div class="empty-state">No briefing items yet. Add the first one.</div>
+          <div class="empty-state">まだ共有事項がありません。最初の1件を追加しましょう。</div>
         </div>
       </div>
     </div>
@@ -1460,7 +1462,7 @@ a { color: inherit; text-decoration: none; }
           <div class="page-title">日次レポート</div>
           <div class="page-sub" id="reports-sub">レポートの提出・確認</div>
         </div>
-        <button class="btn btn-primary" onclick="openReportModal()" style="letter-spacing:0.08em;font-size:11px;text-transform:uppercase;border:1px solid var(--gold);background:transparent;color:var(--gold);">▶ SUBMIT REPORT</button>
+        <button class="btn btn-primary" onclick="openReportModal()" style="letter-spacing:0.08em;font-size:11px;text-transform:uppercase;border:1px solid var(--gold);background:transparent;color:var(--gold);">▶ 日報提出</button>
       </div>
       <div id="reports-unreviewed" style="display:none;margin-bottom:16px;">
         <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:8px;">フィードバック待ち</div>
@@ -1704,20 +1706,20 @@ a { color: inherit; text-decoration: none; }
 <div class="modal-overlay" id="modal-news">
   <div class="modal" style="max-width:440px;">
     <div class="modal-header">
-      <div class="modal-title">Post News</div>
+      <div class="modal-title">ニュース投稿</div>
       <button class="modal-close" onclick="closeModal('modal-news')">&#x2715;</button>
     </div>
     <div class="form-group">
-      <label class="form-label">Headline</label>
-      <input class="form-input" id="news-title" placeholder="News title" />
+      <label class="form-label">見出し</label>
+      <input class="form-input" id="news-title" placeholder="ニュースタイトル" />
     </div>
     <div class="form-group">
-      <label class="form-label">Content</label>
-      <textarea class="form-textarea" id="news-body" placeholder="News details..." style="min-height:80px;"></textarea>
+      <label class="form-label">内容</label>
+      <textarea class="form-textarea" id="news-body" placeholder="詳細を入力..." style="min-height:80px;"></textarea>
     </div>
     <div class="form-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modal-news')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveNews()">Post</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-news')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveNews()">投稿</button>
     </div>
   </div>
 </div>
@@ -1726,28 +1728,28 @@ a { color: inherit; text-decoration: none; }
 <div class="modal-overlay" id="modal-briefing">
   <div class="modal" style="max-width:440px;">
     <div class="modal-header">
-      <div class="modal-title">Add Briefing Item</div>
+      <div class="modal-title">共有事項を追加</div>
       <button class="modal-close" onclick="closeModal('modal-briefing')">&#x2715;</button>
     </div>
     <div class="form-group">
-      <label class="form-label">Title</label>
-      <input class="form-input" id="briefing-title" placeholder="Item title" />
+      <label class="form-label">タイトル</label>
+      <input class="form-input" id="briefing-title" placeholder="共有事項のタイトル" />
     </div>
     <div class="form-group">
-      <label class="form-label">Details</label>
-      <textarea class="form-textarea" id="briefing-body" placeholder="Details / notes" style="min-height:60px;"></textarea>
+      <label class="form-label">詳細</label>
+      <textarea class="form-textarea" id="briefing-body" placeholder="補足・メモ" style="min-height:60px;"></textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">Priority</label>
+      <label class="form-label">優先度</label>
       <select class="form-select" id="briefing-priority">
-        <option value="normal">Normal</option>
-        <option value="high">High</option>
-        <option value="urgent">Urgent</option>
+        <option value="normal">通常</option>
+        <option value="high">重要</option>
+        <option value="urgent">緊急</option>
       </select>
     </div>
     <div class="form-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modal-briefing')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveBriefingItem()">Add</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-briefing')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveBriefingItem()">追加</button>
     </div>
   </div>
 </div>
@@ -3519,7 +3521,7 @@ async function postBubbleComment() {
   document.getElementById('bubble-text').value = '';
   await loadBubbleComments();
   renderAgentStatus();
-  toast('Bubble posted!');
+  toast('バブルを送信しました');
 }
 function getBubbleForAgent(staffId) {
   const cutoff = Date.now() - 12 * 60 * 60 * 1000;
@@ -3548,13 +3550,13 @@ async function saveNews() {
   closeModal('modal-news');
   await loadNews();
   renderNewsSection();
-  toast('News posted!');
+  toast('ニュースを投稿しました');
 }
 function renderNewsSection() {
   const el = document.getElementById('dash-news');
   if (!el) return;
   if (newsItems.length === 0) {
-    el.innerHTML = '<div class="empty-state">No news posted yet</div>';
+    el.innerHTML = '<div class="empty-state">ニュースはまだありません</div>';
     return;
   }
   el.innerHTML = newsItems.slice(0, 5).map(n => `
@@ -3599,9 +3601,9 @@ function renderCompetitorIntel() {
   el.innerHTML = COMPETITORS.map(c => `
     <div class="comp-card">
       <div class="comp-name" style="color:${c.color};">${c.name}</div>
-      <div class="comp-row"><span style="color:var(--muted);">Tournament</span><span style="font-weight:600;font-size:11px;">${c.tournament}</span></div>
-      <div class="comp-row"><span style="color:var(--muted);">Entries</span><span style="font-weight:700;">${c.entries}</span></div>
-      <div class="comp-row"><span style="color:var(--muted);">Rings</span><span>${c.rings}</span></div>
+      <div class="comp-row"><span style="color:var(--muted);">トーナメント</span><span style="font-weight:600;font-size:11px;">${c.tournament}</span></div>
+      <div class="comp-row"><span style="color:var(--muted);">エントリー</span><span style="font-weight:700;">${c.entries}</span></div>
+      <div class="comp-row"><span style="color:var(--muted);">リング</span><span>${c.rings}</span></div>
       <div style="font-size:10px;color:var(--muted);margin-top:6px;font-style:italic;">${c.notes}</div>
     </div>
   `).join('');
@@ -3634,13 +3636,13 @@ async function saveBriefingItem() {
   closeModal('modal-briefing');
   await loadBriefingItems();
   renderBriefingPage();
-  toast('Briefing item added!');
+  toast('共有事項を追加しました');
 }
 function renderBriefingPage() {
   const today = getTodayKey();
   const d = new Date();
   const sub = document.getElementById('briefing-date-sub');
-  if (sub) sub.textContent = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} - Daily briefing`;
+  if (sub) sub.textContent = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} — 本日のブリーフィング`;
 
   const todayItems = briefingItems.filter(b => b.date === today);
   const yesterdayKey = formatDate(new Date(Date.now() - 86400000));
@@ -3658,7 +3660,7 @@ function renderBriefingPage() {
   const listEl = document.getElementById('briefing-items-list');
   if (!listEl) return;
   if (todayItems.length === 0) {
-    listEl.innerHTML = '<div class="empty-state">No briefing items yet. Add the first one.</div>';
+    listEl.innerHTML = '<div class="empty-state">まだ共有事項がありません。最初の1件を追加しましょう。</div>';
   } else {
     const prioOrder = { urgent: 0, high: 1, normal: 2 };
     const sorted = [...todayItems].sort((a, b) => (prioOrder[a.priority] || 2) - (prioOrder[b.priority] || 2));
@@ -3667,7 +3669,7 @@ function renderBriefingPage() {
 }
 function renderBriefingItem(item, isCarryover) {
   const prioColors = { urgent: 'var(--red)', high: 'var(--orange)', normal: 'var(--muted)' };
-  const prioLabels = { urgent: 'URGENT', high: 'HIGH', normal: '' };
+  const prioLabels = { urgent: '緊急', high: '重要', normal: '' };
   return `<div class="briefing-item" style="${isCarryover ? 'border-left:3px solid var(--orange);' : ''}">
     <div class="briefing-item-header">
       <div class="briefing-item-title">${item.title}</div>
@@ -3912,8 +3914,8 @@ renderAgentStatus = async function() {
   const standbyContainer = document.getElementById('agent-standby-list');
 
   if (allShiftIds.length === 0) {
-    activeContainer.innerHTML = '<div class="empty-state" style="padding:6px 0;font-size:12px;">No agents on shift</div>';
-    standbyContainer.innerHTML = '<div class="empty-state" style="padding:6px 0;font-size:12px;">No standby scheduled</div>';
+    activeContainer.innerHTML = '<div class="empty-state" style="padding:6px 0;font-size:12px;">稼働中のエージェントなし</div>';
+    standbyContainer.innerHTML = '<div class="empty-state" style="padding:6px 0;font-size:12px;">スタンバイ予定なし</div>';
     document.getElementById('agent-active-card').style.display = 'none';
     return;
   }
@@ -3972,7 +3974,7 @@ renderAgentStatus = async function() {
     document.getElementById('agent-standby-title').textContent = 'Standby Agents (' + standbyAgents.length + ')';
     standbyContainer.innerHTML = standbyAgents.map(renderChipWithBubble).join('');
   } else {
-    standbyContainer.innerHTML = '<div class="empty-state" style="padding:6px 0;font-size:12px;">No standby agents</div>';
+    standbyContainer.innerHTML = '<div class="empty-state" style="padding:6px 0;font-size:12px;">スタンバイなし</div>';
   }
 };
 
