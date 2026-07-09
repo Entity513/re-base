@@ -1264,7 +1264,7 @@ a { color: inherit; text-decoration: none; }
       <div style="height:1px;background:var(--border);margin:8px 4px;"></div>
       <div class="nav-item" data-page="briefing" onclick="navigate('briefing')">
         <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><line x1="8" y1="4" x2="8" y2="8.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="8" y1="8.5" x2="11" y2="10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
-        <span class="nav-label">Briefing</span>
+        <span class="nav-label">朝礼</span>
       </div>
       <div class="nav-item" data-page="reports" onclick="navigate('reports')">
         <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 1.5h7l3 3V14.5H3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><line x1="5.5" y1="7" x2="10.5" y2="7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="5.5" y1="9.5" x2="10.5" y2="9.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="5.5" y1="12" x2="8.5" y2="12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
@@ -1703,22 +1703,22 @@ a { color: inherit; text-decoration: none; }
     <div class="page" id="page-briefing">
       <div class="page-header">
         <div>
-          <div class="page-title">Morning Briefing</div>
+          <div class="page-title">朝礼ブリーフィング</div>
           <div class="page-sub" id="briefing-date-sub"></div>
         </div>
-        <button class="btn btn-primary" onclick="openBriefingEditModal()">+ Add Item</button>
+        <button class="btn btn-primary" style="background:transparent;border:1px solid var(--blue);color:var(--blue);font-size:12px;letter-spacing:0.08em;text-transform:uppercase;" onclick="openBriefingEditModal()">＋ 項目追加</button>
       </div>
       <div style="background:linear-gradient(135deg,rgba(71,160,232,0.08),rgba(71,232,160,0.08));border:1px solid rgba(71,160,232,0.15);border-radius:12px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:var(--muted2);">
-        <strong style="color:var(--blue);">First In?</strong> You're responsible for reviewing and updating today's briefing before everyone arrives.
+        <strong style="color:var(--blue);">最初の出勤？</strong> 全員が揃う前に、今日の共有事項を確認・更新してください。
       </div>
       <div id="briefing-carryover" style="display:none;margin-bottom:16px;">
-        <div style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:8px;">Carried Over from Yesterday</div>
+        <div style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:8px;">前日からの持ち越し</div>
         <div id="briefing-carryover-list"></div>
       </div>
       <div class="briefing-card">
-        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Today's Items</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">本日の共有事項</div>
         <div id="briefing-items-list">
-          <div class="empty-state">No briefing items yet. Add the first one.</div>
+          <div class="empty-state">まだ共有事項がありません。最初の1件を追加しましょう。</div>
         </div>
       </div>
     </div>
@@ -1996,28 +1996,28 @@ a { color: inherit; text-decoration: none; }
 <div class="modal-overlay" id="modal-briefing">
   <div class="modal" style="max-width:440px;">
     <div class="modal-header">
-      <div class="modal-title">Add Briefing Item</div>
+      <div class="modal-title">共有事項を追加</div>
       <button class="modal-close" onclick="closeModal('modal-briefing')">&#x2715;</button>
     </div>
     <div class="form-group">
-      <label class="form-label">Title</label>
-      <input class="form-input" id="briefing-title" placeholder="Item title" />
+      <label class="form-label">タイトル</label>
+      <input class="form-input" id="briefing-title" placeholder="共有事項のタイトル" />
     </div>
     <div class="form-group">
-      <label class="form-label">Details</label>
-      <textarea class="form-textarea" id="briefing-body" placeholder="Details / notes" style="min-height:60px;"></textarea>
+      <label class="form-label">詳細</label>
+      <textarea class="form-textarea" id="briefing-body" placeholder="補足・メモ" style="min-height:60px;"></textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">Priority</label>
+      <label class="form-label">優先度</label>
       <select class="form-select" id="briefing-priority">
-        <option value="normal">Normal</option>
-        <option value="high">High</option>
-        <option value="urgent">Urgent</option>
+        <option value="normal">通常</option>
+        <option value="high">重要</option>
+        <option value="urgent">緊急</option>
       </select>
     </div>
     <div class="form-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modal-briefing')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveBriefingItem()">Add</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-briefing')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveBriefingItem()">追加</button>
     </div>
   </div>
 </div>
@@ -3904,13 +3904,13 @@ async function saveBriefingItem() {
   closeModal('modal-briefing');
   await loadBriefingItems();
   renderBriefingPage();
-  toast('Briefing item added!');
+  toast('共有事項を追加しました');
 }
 function renderBriefingPage() {
   const today = getTodayKey();
   const d = new Date();
   const sub = document.getElementById('briefing-date-sub');
-  if (sub) sub.textContent = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} - Daily briefing`;
+  if (sub) sub.textContent = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} — 本日のブリーフィング`;
 
   const todayItems = briefingItems.filter(b => b.date === today);
   const yesterdayKey = formatDate(new Date(Date.now() - 86400000));
@@ -3928,7 +3928,7 @@ function renderBriefingPage() {
   const listEl = document.getElementById('briefing-items-list');
   if (!listEl) return;
   if (todayItems.length === 0) {
-    listEl.innerHTML = '<div class="empty-state">No briefing items yet. Add the first one.</div>';
+    listEl.innerHTML = '<div class="empty-state">まだ共有事項がありません。最初の1件を追加しましょう。</div>';
   } else {
     const prioOrder = { urgent: 0, high: 1, normal: 2 };
     const sorted = [...todayItems].sort((a, b) => (prioOrder[a.priority] || 2) - (prioOrder[b.priority] || 2));
@@ -3937,7 +3937,7 @@ function renderBriefingPage() {
 }
 function renderBriefingItem(item, isCarryover) {
   const prioColors = { urgent: 'var(--red)', high: 'var(--orange)', normal: 'var(--muted)' };
-  const prioLabels = { urgent: 'URGENT', high: 'HIGH', normal: '' };
+  const prioLabels = { urgent: '緊急', high: '重要', normal: '' };
   return `<div class="briefing-item" style="${isCarryover ? 'border-left:3px solid var(--orange);' : ''}">
     <div class="briefing-item-header">
       <div class="briefing-item-title">${item.title}</div>
