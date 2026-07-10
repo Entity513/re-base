@@ -2224,6 +2224,41 @@ function renderDatabase() {
 const WEEKDAYS_JA = ['日曜日','月曜日','火曜日','水曜日','木曜日','金曜日','土曜日'];
 const MONTHS_JA = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 
+const SALES_DAILY_DATA = [
+  { date:'2026-07-01', weekday:'水', sales_total:370500, rake:161000, drink:57500, tournament:152000, total_customers:51, avg_spend:7265, new_customers:6, repeat_customers:45 },
+  { date:'2026-07-02', weekday:'木', sales_total:430400, rake:224800, drink:43600, tournament:162000, total_customers:50, avg_spend:8608, new_customers:7, repeat_customers:43 },
+  { date:'2026-07-03', weekday:'金', sales_total:661900, rake:293900, drink:95500, tournament:272500, total_customers:67, avg_spend:9879, new_customers:11, repeat_customers:56 },
+  { date:'2026-07-04', weekday:'土', sales_total:487000, rake:192300, drink:51700, tournament:243000, total_customers:60, avg_spend:8117, new_customers:18, repeat_customers:42 },
+  { date:'2026-07-05', weekday:'日', sales_total:625400, rake:176400, drink:72000, tournament:377000, total_customers:76, avg_spend:8229, new_customers:15, repeat_customers:61 },
+  { date:'2026-07-06', weekday:'月', sales_total:356800, rake:198600, drink:44200, tournament:114000, total_customers:48, avg_spend:7433, new_customers:5, repeat_customers:43 },
+  { date:'2026-07-07', weekday:'火', sales_total:390500, rake:210600, drink:50900, tournament:129000, total_customers:37, avg_spend:10554, new_customers:4, repeat_customers:33 },
+  { date:'2026-07-08', weekday:'水', sales_total:419600, rake:207900, drink:32700, tournament:179000, total_customers:44, avg_spend:9536, new_customers:7, repeat_customers:37 },
+  { date:'2026-07-09', weekday:'木', sales_total:499800, rake:255900, drink:84900, tournament:119000, total_customers:53, avg_spend:9430, new_customers:5, repeat_customers:48 }
+];
+
+function getLatestSalesEntry() {
+  if (!SALES_DAILY_DATA.length) return null;
+  return [...SALES_DAILY_DATA].sort((a,b) => a.date.localeCompare(b.date)).slice(-1)[0];
+}
+
+function getMonthlySalesAggregate(baseDate = null) {
+  const targetDate = baseDate ? new Date(baseDate) : new Date();
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const monthlyRows = SALES_DAILY_DATA.filter(row => row.date.startsWith(`${year}-${month}`));
+  const totals = monthlyRows.reduce((acc, row) => {
+    acc.sales += row.sales_total || 0;
+    acc.rake += row.rake || 0;
+    acc.drink += row.drink || 0;
+    acc.tournament += row.tournament || 0;
+    acc.totalCustomers += row.total_customers || 0;
+    acc.newCustomers += row.new_customers || 0;
+    acc.repeatCustomers += row.repeat_customers || 0;
+    return acc;
+  }, { sales:0, rake:0, drink:0, tournament:0, totalCustomers:0, newCustomers:0, repeatCustomers:0 });
+  return { rows: monthlyRows, ...totals };
+}
+
 async function renderAgentStatus() {
   const { ids: allShiftIds, shifts } = await getOnlineStaffIds();
   const activeContainer = document.getElementById('agent-active-list');
@@ -2294,20 +2329,45 @@ async function renderAgentStatus() {
 
 // ===== PERFORMANCE CARD =====
 function getPerformanceData() {
-  // Placeholder data - replace with Supabase queries when data structure is known
+  const latest = getLatestSalesEntry();
+  const monthlyAgg = getMonthlySalesAggregate(latest?.date || null);
+  const target = 20000000;
+  const achievementRate = target > 0 ? Number(((monthlyAgg.sales / target) * 100).toFixed(1)) : 0;
+  const yesterday = latest ? {
+    sales: latest.sales_total || 0,
+    avgSpend: latest.avg_spend || 0,
+    totalCustomers: latest.total_customers || 0,
+    newCustomers: latest.new_customers || 0,
+    repeatCustomers: latest.repeat_customers || 0,
+    rake: latest.rake || 0,
+    drink: latest.drink || 0,
+    tournament: latest.tournament || 0,
+    date: latest.date || ''
+  } : {
+    sales: 0,
+    avgSpend: 0,
+    totalCustomers: 0,
+    newCustomers: 0,
+    repeatCustomers: 0,
+    rake: 0,
+    drink: 0,
+    tournament: 0,
+    date: ''
+  };
   return {
-    yesterday: {
-      sales: 562000,
-      avgSpend: 8900,
-      totalCustomers: 63,
-      newCustomers: 12,
-      repeatCustomers: 51
-    },
+    yesterday,
     monthly: {
-      sales: 12840000,
-      target: 20000000,
-      achievementRate: 64.2,
-      remaining: 7160000
+      sales: monthlyAgg.sales,
+      target,
+      achievementRate,
+      remaining: Math.max(target - monthlyAgg.sales, 0),
+      totalCustomers: monthlyAgg.totalCustomers,
+      newCustomers: monthlyAgg.newCustomers,
+      repeatCustomers: monthlyAgg.repeatCustomers,
+      rake: monthlyAgg.rake,
+      drink: monthlyAgg.drink,
+      tournament: monthlyAgg.tournament,
+      days: monthlyAgg.rows.length
     }
   };
 }
@@ -2336,6 +2396,9 @@ function renderPerformanceCards() {
   if (yesterdayEl) {
     yesterdayEl.innerHTML = `
       <div class="perf-row"><span class="perf-label">売上</span><span class="perf-value" style="color:var(--gold);">&yen;${fmt(data.yesterday.sales)}</span></div>
+      <div class="perf-row"><span class="perf-label">レーキ</span><span class="perf-value">&yen;${fmt(data.yesterday.rake)}</span></div>
+      <div class="perf-row"><span class="perf-label">ドリンク</span><span class="perf-value">&yen;${fmt(data.yesterday.drink)}</span></div>
+      <div class="perf-row"><span class="perf-label">トナメ</span><span class="perf-value">&yen;${fmt(data.yesterday.tournament)}</span></div>
       <div class="perf-row"><span class="perf-label">客単価</span><span class="perf-value">&yen;${fmt(data.yesterday.avgSpend)}</span></div>
       <div class="perf-row"><span class="perf-label">総客数</span><span class="perf-value">${data.yesterday.totalCustomers}</span></div>
       <div class="perf-row"><span class="perf-label">新規</span><span class="perf-value" style="color:var(--blue);">${data.yesterday.newCustomers}</span></div>
@@ -2349,6 +2412,13 @@ function renderPerformanceCards() {
     const barColor = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--gold)' : 'var(--orange)';
     monthlyEl.innerHTML = `
       <div class="perf-row"><span class="perf-label">今月売上</span><span class="perf-value big" style="color:var(--gold);">&yen;${fmt(data.monthly.sales)}</span></div>
+      <div class="perf-row"><span class="perf-label">レーキ累計</span><span class="perf-value">&yen;${fmt(data.monthly.rake)}</span></div>
+      <div class="perf-row"><span class="perf-label">ドリンク累計</span><span class="perf-value">&yen;${fmt(data.monthly.drink)}</span></div>
+      <div class="perf-row"><span class="perf-label">トナメ累計</span><span class="perf-value">&yen;${fmt(data.monthly.tournament)}</span></div>
+      <div class="perf-row"><span class="perf-label">総客数累計</span><span class="perf-value">${fmt(data.monthly.totalCustomers)}</span></div>
+      <div class="perf-row"><span class="perf-label">新規累計</span><span class="perf-value" style="color:var(--blue);">${fmt(data.monthly.newCustomers)}</span></div>
+      <div class="perf-row"><span class="perf-label">リピ累計</span><span class="perf-value" style="color:var(--green);">${fmt(data.monthly.repeatCustomers)}</span></div>
+      <div class="perf-row"><span class="perf-label">反映日数</span><span class="perf-value">${data.monthly.days}日</span></div>
       <div class="perf-row"><span class="perf-label">目標</span><span class="perf-value">&yen;${fmt(data.monthly.target)}</span></div>
       <div class="perf-row"><span class="perf-label">達成率</span><span class="perf-value" style="color:${barColor};">${pct}%</span></div>
       <div class="perf-progress"><div class="perf-progress-bar" style="width:${Math.min(pct,100)}%;background:${barColor};"></div></div>
