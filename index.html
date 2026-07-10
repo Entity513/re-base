@@ -1226,8 +1226,11 @@ a { color: inherit; text-decoration: none; }
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 2h12v9H5l-3 3V2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
               BUBBLE TRANSMIT
             </div>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <div style="position:relative;flex:1;">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <select class="form-select" id="bubble-target" style="max-width:180px;font-size:12px;padding:8px 10px;background:rgba(71,160,232,0.06);border:1px solid rgba(71,160,232,0.18);">
+                <option value="">送信先を選択</option>
+              </select>
+              <div style="position:relative;flex:1;min-width:220px;">
                 <input class="form-input" id="bubble-text" placeholder="ひとことメッセージ（12h表示）" style="flex:1;font-size:12px;padding:8px 12px 8px 10px;background:rgba(71,160,232,0.06);border:1px solid rgba(71,160,232,0.18);letter-spacing:0.03em;" maxlength="60" />
               </div>
               <button class="btn btn-primary btn-sm" onclick="postBubbleComment()" style="background:transparent;border:1px solid rgba(71,160,232,0.4);color:var(--blue);font-size:11px;letter-spacing:0.1em;padding:7px 14px;">SEND</button>
@@ -3601,24 +3604,43 @@ const DataStore = {
 
 // ===== BUBBLE COMMENTS =====
 let bubbleComments = [];
+function getBubbleTargetOptions() {
+  return staffList.filter(s => s && s.id).map(s => ({ id: s.id, name: s.name || 'Unknown' }));
+}
+function renderBubbleTargetOptions() {
+  const select = document.getElementById('bubble-target');
+  if (!select) return;
+  const currentValue = select.value;
+  const options = getBubbleTargetOptions();
+  select.innerHTML = '<option value="">送信先を選択</option>' + options.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+  if (currentValue && options.some(o => o.id === currentValue)) {
+    select.value = currentValue;
+  } else if (currentUser?.id && options.some(o => o.id === currentUser.id)) {
+    select.value = currentUser.id;
+  }
+}
 async function loadBubbleComments() {
   bubbleComments = await DataStore.load('bubble_comments');
-  // Filter expired (>12h)
   const cutoff = Date.now() - 12 * 60 * 60 * 1000;
-  bubbleComments = bubbleComments.filter(b => new Date(b.created_at).getTime() > cutoff);
+  bubbleComments = bubbleComments
+    .filter(b => new Date(b.created_at).getTime() > cutoff)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   await DataStore.save('bubble_comments', bubbleComments);
 }
 async function postBubbleComment() {
   const text = document.getElementById('bubble-text')?.value?.trim();
-  if (!text || !currentUser) return;
+  const selectedTarget = document.getElementById('bubble-target')?.value?.trim();
+  const targetId = selectedTarget || currentUser?.id;
+  if (!text || !currentUser || !targetId) return;
   await DataStore.insert('bubble_comments', {
-    staff_id: currentUser.id,
+    staff_id: targetId,
     text: text,
-    author: currentUser.name
+    author: currentUser.name,
+    sender_id: currentUser.id
   });
   document.getElementById('bubble-text').value = '';
   await loadBubbleComments();
-  renderAgentStatus();
+  await renderAgentStatus();
   toast('バブルを送信しました');
 }
 function getBubbleForAgent(staffId) {
@@ -4015,12 +4037,12 @@ navigate = function(page) {
 const origRenderDashboard = renderDashboard;
 renderDashboard = async function() {
   origRenderDashboard();
+  renderBubbleTargetOptions();
   await loadBubbleComments();
   await loadNews();
   renderNewsSection();
   renderCompetitorIntel();
-  // Re-render agents with bubbles
-  renderAgentStatus();
+  await renderAgentStatus();
 };
 
 // ===== ENHANCED AGENT STATUS (with bubbles) =====
@@ -4126,6 +4148,7 @@ renderLoginCards = function(onlineIds) {
 const _origLoadAllData = loadAllData;
 loadAllData = async function() {
   await _origLoadAllData();
+  renderBubbleTargetOptions();
   await Promise.all([loadBubbleComments(), loadNews(), loadBriefingItems(), loadReports()]);
 };
 
