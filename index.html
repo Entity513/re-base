@@ -3604,19 +3604,31 @@ const DataStore = {
 
 // ===== BUBBLE COMMENTS =====
 let bubbleComments = [];
-function getBubbleTargetOptions() {
-  return staffList.filter(s => s && s.id).map(s => ({ id: s.id, name: s.name || 'Unknown' }));
+async function getBubbleTargetOptions() {
+  const { ids: allShiftIds, shifts } = await getOnlineStaffIds();
+  const now2 = new Date();
+  const nowMin = now2.getHours() * 60 + now2.getMinutes();
+  const toMin = t => { if (!t) return null; const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const activeIds = allShiftIds.filter(id => {
+    const shift = shifts[id];
+    const startMin = toMin(shift?.start_time);
+    const endMin = toMin(shift?.end_time);
+    return startMin !== null && endMin !== null && nowMin >= startMin && nowMin < endMin;
+  });
+  return staffList
+    .filter(s => s && s.id && activeIds.includes(s.id))
+    .map(s => ({ id: s.id, name: s.name || 'Unknown' }));
 }
-function renderBubbleTargetOptions() {
+async function renderBubbleTargetOptions() {
   const select = document.getElementById('bubble-target');
   if (!select) return;
   const currentValue = select.value;
-  const options = getBubbleTargetOptions();
-  select.innerHTML = '<option value="">送信先を選択</option>' + options.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+  const options = await getBubbleTargetOptions();
+  select.innerHTML = '<option value="">稼働中エージェントを選択</option>' + options.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
   if (currentValue && options.some(o => o.id === currentValue)) {
     select.value = currentValue;
-  } else if (currentUser?.id && options.some(o => o.id === currentUser.id)) {
-    select.value = currentUser.id;
+  } else if (options.length > 0) {
+    select.value = options[0].id;
   }
 }
 async function loadBubbleComments() {
@@ -4037,13 +4049,13 @@ navigate = function(page) {
 const origRenderDashboard = renderDashboard;
 renderDashboard = async function() {
   origRenderDashboard();
-  renderBubbleTargetOptions();
+  await renderBubbleTargetOptions();
   await loadBubbleComments();
   await loadNews();
   renderNewsSection();
   renderCompetitorIntel();
   await renderAgentStatus();
-};
+}
 
 // ===== ENHANCED AGENT STATUS (with bubbles) =====
 const origRenderAgentChip_src = renderAgentStatus.toString();
@@ -4114,7 +4126,21 @@ renderAgentStatus = async function() {
 
   if (standbyAgents.length > 0) {
     document.getElementById('agent-standby-title').textContent = 'Standby Agents (' + standbyAgents.length + ')';
-    standbyContainer.innerHTML = standbyAgents.map(renderChipWithBubble).join('');
+    standbyContainer.innerHTML = standbyAgents.map(({ id, shift, status }) => {
+      const staff = staffList.find(s => s.id === id);
+      if (!staff) return '';
+      const name = staff.name || 'Unknown';
+      const avatarSrc = STAFF_AVATARS[id];
+      const color = staff.color || '#E8C547';
+      const avatarHtml = avatarSrc
+        ? '<img src="' + avatarSrc + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" />'
+        : '<div style="width:40px;height:40px;border-radius:50%;background:' + color + '22;color:' + color + ';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;">' + name.charAt(0) + '</div>';
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;">'
+        + avatarHtml
+        + '<div style="font-size:11px;font-weight:600;white-space:nowrap;">' + name + '</div>'
+        + '<div style="font-size:9px;color:var(--muted);">' + fmtTime(shift?.start_time) + '~</div>'
+        + '</div>';
+    }).join('');
   } else {
     standbyContainer.innerHTML = '<div class="empty-state" style="padding:6px 0;font-size:12px;">スタンバイなし</div>';
   }
@@ -4148,7 +4174,7 @@ renderLoginCards = function(onlineIds) {
 const _origLoadAllData = loadAllData;
 loadAllData = async function() {
   await _origLoadAllData();
-  renderBubbleTargetOptions();
+  await renderBubbleTargetOptions();
   await Promise.all([loadBubbleComments(), loadNews(), loadBriefingItems(), loadReports()]);
 };
 
