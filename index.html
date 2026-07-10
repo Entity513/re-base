@@ -1848,6 +1848,26 @@ const DATABASE_CATEGORY_META = {
   organization: { label: '組織・人事', color: 'var(--orange)' },
 };
 
+const TODAY_BRIEFING_SEED = [
+  { title:'除湿機必ず水捨てる', body:'', priority:'high' },
+  { title:'オープンの人は掃除をしっかりする', body:'', priority:'high' },
+  { title:'オープンツイート、店内状況忘れずに', body:'', priority:'high' },
+  { title:'画像アップする前に確認する', body:'', priority:'high' },
+  { title:'営業中店内を綺麗にする', body:'', priority:'high' },
+  { title:'JOPT Gamesのチケット1日10枚は全員配りましょう', body:'絶対無理なら自分が取得', priority:'urgent' },
+  { title:'いらっしゃいませなどの挨拶が雑になってきてる', body:'目を見て挨拶！', priority:'urgent' },
+  { title:'名札絶対つけてください', body:'', priority:'high' },
+  { title:'ワンモアドリンクきこう！', body:'', priority:'high' },
+  { title:'タブレットなどの端末をカウンターに放置しない', body:'営業中取られたり、中身見られたら大変です。受付に置く', priority:'urgent' },
+  { title:'OSTサテライト', body:'12日33枚配ります', priority:'normal' },
+  { title:'夏祭りイベント', body:'13日・14日あり。浴衣持ってる人着てきてね', priority:'normal' },
+  { title:'25日リベンジャーズ', body:'', priority:'normal' },
+  { title:'さきゅパフ販売', body:'1つ5000円', priority:'normal' },
+  { title:'11日から夏のスタンプカード開催！', body:'6項目達成したら7200RP貰える！夏休みの予定を引用リポストはそれ用のツイートあり', priority:'urgent' },
+  { title:'サキュバスはレシート持参で！', body:'', priority:'normal' },
+  { title:'できたらハンコ押す', body:'ハンコはディーラーのお腹に入れとく', priority:'normal' }
+];
+
 const DATABASE_SEED = [
   { id:'db-2026-03', title:'3月 振り返りレポート', category:'monthly_report', subcategory:'グランドオープン', date:'2026-03-01', description:'グランドオープン月の全体振り返り。集客・稼働・イベント成果を総括。', tags:['振り返り','集客分析','月次'], url:'https://entity513.github.io/repoker-march-review/' },
   { id:'db-2026-04', title:'4月 振り返りレポート', category:'monthly_report', subcategory:'月次', date:'2026-04-01', description:'売上1,600万円・集客1,400人・リピーター2倍超。グランドOPEN後第2月目の転換点。', tags:['売上','集客','月次'], url:'https://warm-paletas-32cb0b.netlify.app/' },
@@ -3691,7 +3711,23 @@ function renderCompetitorIntel() {
 let briefingItems = [];
 function getTodayKey() { return formatDate(new Date()); }
 async function loadBriefingItems() {
-  const all = await DataStore.load('briefing_items');
+  let all = await DataStore.load('briefing_items');
+  const today = getTodayKey();
+  const hasTodaySeed = all.some(item => item.date === today && item.author === 'Entity Seed');
+  if (!hasTodaySeed && TODAY_BRIEFING_SEED.length > 0) {
+    const seeded = TODAY_BRIEFING_SEED.map((item, idx) => ({
+      id: `seed-${today}-${idx + 1}`,
+      title: item.title,
+      body: item.body,
+      priority: item.priority || 'normal',
+      date: today,
+      author: 'Entity Seed',
+      carried_over: false,
+      created_at: new Date().toISOString()
+    }));
+    all = [...seeded, ...all];
+    await DataStore.save('briefing_items', all);
+  }
   briefingItems = all;
 }
 function openBriefingEditModal() {
