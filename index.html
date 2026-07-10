@@ -1762,16 +1762,24 @@ a { color: inherit; text-decoration: none; }
       <button class="modal-close" onclick="closeModal('modal-report')">&#x2715;</button>
     </div>
     <div class="form-group">
-      <label class="form-label">本日の実績</label>
-      <textarea class="form-textarea" id="report-summary" placeholder="今日完了した業務・進捗を記入" style="min-height:80px;"></textarea>
+      <label class="form-label">💻 業務内容</label>
+      <textarea class="form-textarea" id="report-summary" placeholder="今日やった業務内容を記入" style="min-height:90px;"></textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">課題・ブロッカー</label>
-      <textarea class="form-textarea" id="report-issues" placeholder="発生した問題や障害があれば記入" style="min-height:40px;"></textarea>
+      <label class="form-label">🔍 課題・問題点</label>
+      <textarea class="form-textarea" id="report-issues" placeholder="発生した課題・問題点を記入" style="min-height:60px;"></textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">翌日の予定</label>
-      <textarea class="form-textarea" id="report-plan" placeholder="明日の作業予定を記入" style="min-height:40px;"></textarea>
+      <label class="form-label">✒️ 改善策・対応</label>
+      <textarea class="form-textarea" id="report-actions" placeholder="行った改善策や対応内容を記入" style="min-height:60px;"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">💡 所感（気付き、学び、意見など）</label>
+      <textarea class="form-textarea" id="report-reflection" placeholder="気付き・学び・意見などを記入" style="min-height:70px;"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">✅ 次回の予定・目標</label>
+      <textarea class="form-textarea" id="report-plan" placeholder="次回の予定・目標を記入" style="min-height:60px;"></textarea>
     </div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-report')">キャンセル</button>
@@ -3692,19 +3700,23 @@ async function loadReports() {
 function openReportModal() {
   document.getElementById('report-summary').value = '';
   document.getElementById('report-issues').value = '';
+  document.getElementById('report-actions').value = '';
+  document.getElementById('report-reflection').value = '';
   document.getElementById('report-plan').value = '';
   document.getElementById('modal-report').classList.add('open');
 }
 async function saveReport() {
   const summary = document.getElementById('report-summary').value.trim();
   const issues = document.getElementById('report-issues').value.trim();
+  const actions = document.getElementById('report-actions').value.trim();
+  const reflection = document.getElementById('report-reflection').value.trim();
   const plan = document.getElementById('report-plan').value.trim();
   if (!summary) return;
   await DataStore.insert('daily_reports', {
     staff_id: currentUser?.id,
     author: currentUser?.name || 'Unknown',
     date: getTodayKey(),
-    summary, issues, plan,
+    summary, issues, actions, reflection, plan,
     feedback: null,
     feedback_by: null
   });
@@ -3781,9 +3793,11 @@ function renderReportCard(report, isUnreviewed) {
       </div>
       <span class="report-status ${report.feedback ? 'report-read' : 'report-unread'}">${report.feedback ? '確認済' : '未確認'}</span>
     </div>
-    <div style="font-size:13px;line-height:1.7;margin-bottom:6px;"><strong>実績:</strong> ${report.summary || ''}</div>
-    ${report.issues ? `<div style="font-size:12px;color:var(--orange);margin-bottom:4px;"><strong>課題:</strong> ${report.issues}</div>` : ''}
-    ${report.plan ? `<div style="font-size:12px;color:var(--blue);"><strong>翌日予定:</strong> ${report.plan}</div>` : ''}
+    <div style="font-size:13px;line-height:1.7;margin-bottom:8px;"><strong>💻 業務内容:</strong> ${report.summary || ''}</div>
+    ${report.issues ? `<div style="font-size:12px;color:var(--orange);margin-bottom:6px;"><strong>🔍 課題・問題点:</strong> ${report.issues}</div>` : ''}
+    ${report.actions ? `<div style="font-size:12px;color:var(--green);margin-bottom:6px;"><strong>✒️ 改善策・対応:</strong> ${report.actions}</div>` : ''}
+    ${report.reflection ? `<div style="font-size:12px;color:var(--muted2);margin-bottom:6px;"><strong>💡 所感:</strong> ${report.reflection}</div>` : ''}
+    ${report.plan ? `<div style="font-size:12px;color:var(--blue);"><strong>✅ 次回の予定・目標:</strong> ${report.plan}</div>` : ''}
     ${report.feedback ? `<div class="feedback-box"><div class="feedback-label">${report.feedback_by || 'マネージャー'}からのフィードバック</div><div class="feedback-text">${report.feedback}</div></div>` : ''}
     ${michael && !report.feedback ? `<div style="margin-top:8px;"><button class="btn btn-ghost btn-sm" onclick="openFeedbackModal('${report.id}')">フィードバック送信</button></div>` : ''}
   </div>`;
