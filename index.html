@@ -3508,6 +3508,135 @@ function goToTask() {
   window.location.replace('https://entity513.github.io/entity-task/');
 }
 
+// ===== KOKORO LINE SUMMARY =====
+const KOKORO_LINE_USER_ID = 'U13e4f556ec47032982aa922e3bf3549e';
+const KOKORO_TARGET_STAFF_IDS = [
+  '16242077-751b-4f90-a298-94b21f044a1f', // アンプちゃん
+  'ea15a8ed-ff21-445c-bcae-558893f1d5ef', // どれみ
+  '6c8c32ad-d473-4ca3-8eff-fe6f0b4a92f7', // ヨンフン
+  'c3195ae4-e35b-4f70-8757-d04b804f8a1a', // はたぼー
+  '183118a4-70e0-4b8d-9bae-9973988f1399'  // マイケル
+];
+
+function normalizeTimeString(value) {
+  if (!value) return '';
+  return String(value).slice(0,5);
+}
+function formatDateJPShort(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return dateStr;
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+function getStaffNameById(staffId) {
+  return staffList.find(s => s.id === staffId)?.name || 'Unknown';
+}
+function getTodayDateKeyLocal(baseDate = new Date()) {
+  return formatDate(baseDate);
+}
+function getTonightReportDateKey(baseDate = new Date()) {
+  return formatDate(baseDate);
+}
+function pickTodayTasksForStaff(staffId, todayKey) {
+  return allTasks.filter(t =>
+    t.staff_id === staffId &&
+    t.status !== 'done' &&
+    (
+      t.due_date === todayKey ||
+      t.status === 'in_progress'
+    )
+  );
+}
+function pickRecentProgressLogsForStaff(staffId, todayKey) {
+  return [];
+}
+function pickTodayReportForStaff(staffId, todayKey) {
+  return dailyReports.find(r => r.staff_id === staffId && r.date === todayKey) || null;
+}
+function buildMorningSummaryText(baseDate = new Date()) {
+  const todayKey = getTodayDateKeyLocal(baseDate);
+  const lines = [];
+  lines.push(`【本日の予定サマリー】 ${formatDateJPShort(todayKey)}`);
+  lines.push('');
+
+  const targetIds = KOKORO_TARGET_STAFF_IDS.filter(id => staffList.some(s => s.id === id));
+  let missingCount = 0;
+
+  targetIds.forEach(staffId => {
+    const name = getStaffNameById(staffId);
+    const tasks = pickTodayTasksForStaff(staffId, todayKey);
+    lines.push(`■ ${name}`);
+    if (tasks.length === 0) {
+      lines.push('・今日の予定タスクなし / 入力未確認');
+      missingCount += 1;
+    } else {
+      tasks.slice(0, 5).forEach(task => {
+        const due = task.due_date ? `（期限:${formatDateJPShort(task.due_date)}）` : '';
+        const status = task.status === 'in_progress' ? '進行中' : '未着手';
+        lines.push(`・${task.title} [${status}]${due}`);
+      });
+      if (tasks.length > 5) lines.push(`・他 ${tasks.length - 5}件`);
+    }
+    lines.push('');
+  });
+
+  lines.push(`入力漏れ/未確認: ${missingCount}名`);
+  return lines.join('\n').trim();
+}
+function buildEveningSummaryText(baseDate = new Date()) {
+  const todayKey = getTonightReportDateKey(baseDate);
+  const lines = [];
+  lines.push(`【本日の進捗・未完了サマリー】 ${formatDateJPShort(todayKey)}`);
+  lines.push('');
+
+  const targetIds = KOKORO_TARGET_STAFF_IDS.filter(id => staffList.some(s => s.id === id));
+  const stalled = [];
+  const missing = [];
+
+  targetIds.forEach(staffId => {
+    const name = getStaffNameById(staffId);
+    const report = pickTodayReportForStaff(staffId, todayKey);
+    const openTasks = allTasks.filter(t => t.staff_id === staffId && t.status !== 'done');
+    const progressTasks = allTasks.filter(t => t.staff_id === staffId && t.status === 'in_progress');
+    const doneToday = allTasks.filter(t => t.staff_id === staffId && t.status === 'done' && t.completed_at && String(t.completed_at).startsWith(todayKey));
+
+    lines.push(`■ ${name}`);
+    if (report?.plan) lines.push(`・今日の予定: ${report.plan}`);
+    if (doneToday.length > 0) {
+      doneToday.slice(0, 3).forEach(task => lines.push(`・完了: ${task.title}`));
+      if (doneToday.length > 3) lines.push(`・完了 他 ${doneToday.length - 3}件`);
+    }
+    if (progressTasks.length > 0) {
+      progressTasks.slice(0, 3).forEach(task => lines.push(`・進行中: ${task.title}`));
+    }
+    if (openTasks.length > 0) {
+      const undone = openTasks.filter(t => t.status !== 'in_progress').slice(0, 3);
+      undone.forEach(task => lines.push(`・未完了: ${task.title}`));
+      if (openTasks.length > 3) lines.push(`・未完了 他 ${openTasks.length - 3}件`);
+    }
+    if (report?.summary) lines.push(`・日報: ${report.summary}`);
+    if (report?.issues) lines.push(`・課題: ${report.issues}`);
+    if (!report && progressTasks.length === 0 && doneToday.length === 0) {
+      missing.push(name);
+      stalled.push(name);
+      lines.push('・進捗入力なし');
+    } else if (progressTasks.length === 0 && doneToday.length === 0 && openTasks.length > 0) {
+      stalled.push(name);
+    }
+    lines.push('');
+  });
+
+  lines.push(`進捗停滞: ${stalled.length ? stalled.join('、') : 'なし'}`);
+  lines.push(`入力漏れ: ${missing.length ? missing.join('、') : 'なし'}`);
+  return lines.join('\n').trim();
+}
+window.ReBaseKokoroSummary = {
+  buildMorningSummaryText,
+  buildEveningSummaryText,
+  kokoroLineUserId: KOKORO_LINE_USER_ID,
+  targetStaffIds: KOKORO_TARGET_STAFF_IDS,
+};
+
 // ===== TASKS AUTO LOGIN =====
 let tasksIframeLoaded = false;
 function tasksAutoLogin() {
@@ -4175,7 +4304,7 @@ const _origLoadAllData = loadAllData;
 loadAllData = async function() {
   await _origLoadAllData();
   await renderBubbleTargetOptions();
-  await Promise.all([loadBubbleComments(), loadNews(), loadBriefingItems(), loadReports()]);
+  await Promise.all([loadBubbleComments(), loadNews(), loadBriefingItems(), loadReports(), loadTasks()]);
 };
 
 // ===== UNREVIEWED REPORTS ON DASHBOARD =====
